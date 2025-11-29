@@ -68,7 +68,7 @@ public partial class SchedulePageViewModel : BaseViewModel
             if (day == DayOfWeek.Monday || day == DayOfWeek.Thursday || day == DayOfWeek.Friday)
             {
                 for (int i = 1; i <= 3; i++)
-                    AvailableFacilities.Add(new Facility { Name = $"Badminton Court {i}", Location = "10:00, 12:00, 14:00", ImageUrl = "court_badminton.png" });
+                    AvailableFacilities.Add(new Facility { Name = $"Badminton Court {i}", Location = "10:00, 12:00, 14:00", ImageUrl = "badminton_court.webp" });
             }
         }
         else if (selectedCategory == "Ping-Pong")
@@ -77,7 +77,7 @@ public partial class SchedulePageViewModel : BaseViewModel
             if (day == DayOfWeek.Monday || day == DayOfWeek.Friday)
             {
                 for (int i = 1; i <= 4; i++)
-                    AvailableFacilities.Add(new Facility { Name = $"Ping-Pong Table {i}", Location = "10:00, 12:00, 14:00", ImageUrl = "court_pingpong.png" });
+                    AvailableFacilities.Add(new Facility { Name = $"Ping-Pong Table {i}", Location = "10:00, 12:00, 14:00", ImageUrl = "pingpong_court.jpg" });
             }
         }
         else if (selectedCategory == "Basketball")
@@ -85,7 +85,7 @@ public partial class SchedulePageViewModel : BaseViewModel
             var day = SelectedDate.DayOfWeek;
             if (day != DayOfWeek.Saturday && day != DayOfWeek.Sunday)
             {
-                AvailableFacilities.Add(new Facility { Name = "Basketball Court 1", Location = "10:00, 12:00, 14:00, 16:00", ImageUrl = "court_basketball.png" });
+                AvailableFacilities.Add(new Facility { Name = "Basketball Court 1", Location = "10:00, 12:00, 14:00, 16:00", ImageUrl = "basketball_court.webp" });
             }
         }
 

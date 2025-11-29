@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using oculus_sport.Services.Auth;
 using oculus_sport.ViewModels.Base;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace oculus_sport.ViewModels.Main;
 

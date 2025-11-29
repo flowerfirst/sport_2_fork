@@ -9,17 +9,17 @@ namespace oculus_sport.ViewModels.Main;
 public partial class BookingDetailsViewModel : BaseViewModel
 {
     [ObservableProperty]
-    private Booking _booking = new(); 
+    private Booking _booking = new();
+
+    // Bindable properties for the form
+    [ObservableProperty]
+    private string _contactName = string.Empty;
 
     [ObservableProperty]
-    private string _contactName = string.Empty; 
+    private string _contactStudentId = string.Empty;
 
     [ObservableProperty]
-    private string _contactStudentId = string.Empty; 
-
-    [ObservableProperty]
-    private string _contactPhone = string.Empty; 
-
+    private string _contactPhone = string.Empty;
 
     public BookingDetailsViewModel()
     {

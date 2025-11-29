@@ -1,4 +1,4 @@
-﻿using oculus_sport.Services.Storage;
+using oculus_sport.Services.Storage;
 
 namespace oculus_sport;
 
@@ -10,8 +10,11 @@ public partial class App : Application
 
         // Force Light Theme on Startup
         UserAppTheme = AppTheme.Light;
+    }
 
-        MainPage = new AppShell();
+    protected override Window CreateWindow(IActivationState? activationState)
+    {
+        return new Window(new AppShell());
     }
 
     protected override async void OnStart()

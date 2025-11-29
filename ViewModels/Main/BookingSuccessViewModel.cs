@@ -27,6 +27,7 @@ public partial class BookingSuccessViewModel : BaseViewModel
     async Task ShareBooking()
     {
         // Placeholder for Share functionality
-        await Shell.Current.DisplayAlert("Share", $"Sharing Booking ID: {Booking.Id}", "OK");
+        if (Booking != null)
+            await Shell.Current.DisplayAlert("Share", $"Sharing Booking ID: {Booking.Id}", "OK");
     }
 }

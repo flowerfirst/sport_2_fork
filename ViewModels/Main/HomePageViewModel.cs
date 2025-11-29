@@ -33,12 +33,12 @@ namespace oculus_sport.ViewModels.Main
 
             _allFacilities.Clear();
             for (int i = 1; i <= 3; i++)
-                _allFacilities.Add(new Facility { Name = $"Badminton Court {i}", Location = "UTS Indoor Hall", Price = "Free", Rating = 4.5, ImageUrl = "badminton_court.webp" });
+                _allFacilities.Add(new Facility { Name = $"Badminton Court {i}", Location = "UTS Indoor Hall", Price = "Free", Rating = 4.5, ImageUrl = "court_badminton.png" });
 
             for (int i = 1; i <= 4; i++)
-                _allFacilities.Add(new Facility { Name = $"Ping-Pong Table {i}", Location = "Student Center L2", Price = "Free", Rating = 4.8, ImageUrl = "pingpong_court.jpg" });
+                _allFacilities.Add(new Facility { Name = $"Ping-Pong Table {i}", Location = "Student Center L2", Price = "Free", Rating = 4.8, ImageUrl = "court_pingpong.png" });
 
-            _allFacilities.Add(new Facility { Name = "Basketball Court 1", Location = "Outdoor Complex", Price = "Free", Rating = 4.2, ImageUrl = "basketball_court.webp" });
+            _allFacilities.Add(new Facility { Name = "Basketball Court 1", Location = "Outdoor Complex", Price = "Free", Rating = 4.2, ImageUrl = "court_basketball.png" });
 
             FilterFacilities("Badminton");
         }
@@ -66,7 +66,6 @@ namespace oculus_sport.ViewModels.Main
             await Shell.Current.GoToAsync("BookingPage", navigationParameter);
         }
 
-        // NEW: Navigation to Notification Page
         [RelayCommand]
         async Task GoToNotifications()
         {

@@ -10,5 +10,10 @@ public partial class BookingSuccessPage : ContentPage
         BindingContext = vm;
     }
 
-    // REMOVED: OnBackButtonPressed override to allow navigation back
+    // Disable hardware back button to prevent going back to "Confirmation"
+    protected override bool OnBackButtonPressed()
+    {
+        return true; // Return true to ignore the back button
+    }
+
 }

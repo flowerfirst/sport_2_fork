@@ -44,7 +44,10 @@ public static class MauiProgram
         builder.Services.AddSingleton<IDatabaseService, FirebaseDataService>();
         builder.Services.AddSingleton<Services.Other.ConnectivityService>();
         builder.Services.AddSingleton<IBookingService, BookingService>();
-        builder.Services.AddSingleton<LocalDatabaseService>();
+
+        // Registering BOTH to be safe:
+        builder.Services.AddSingleton<LocalDatabaseService>(); // Your Offline Service
+        builder.Services.AddSingleton<LocalDataService>();     // Partner's Service
 
         // 2. ViewModels
         builder.Services.AddTransient<LoginPageViewModel>();
@@ -61,10 +64,8 @@ public static class MauiProgram
         builder.Services.AddTransient<BookingConfirmationViewModel>();
         builder.Services.AddTransient<BookingSuccessViewModel>();
 
-        // Events
+        // Events & Notifications (Your additions)
         builder.Services.AddTransient<EventDetailsViewModel>();
-
-        // Notifications (NEW)
         builder.Services.AddTransient<NotificationPageViewModel>();
 
         // 3. Views
@@ -82,10 +83,8 @@ public static class MauiProgram
         builder.Services.AddTransient<BookingConfirmationPage>();
         builder.Services.AddTransient<BookingSuccessPage>();
 
-        // Events
+        // Events & Notifications (Your additions)
         builder.Services.AddTransient<EventDetailsPage>();
-
-        // Notifications (NEW)
         builder.Services.AddTransient<NotificationPage>();
 
 #if DEBUG

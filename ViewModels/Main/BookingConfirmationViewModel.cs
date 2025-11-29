@@ -28,7 +28,7 @@ public partial class BookingConfirmationViewModel : BaseViewModel
         // 1. Mark as Confirmed
         Booking.Status = "Confirmed";
 
-        // 2. Save to Database/Service
+        // 2. Save to Database/Service (Calls the merged IBookingService)
         await _bookingService.AddBookingAsync(Booking);
 
         IsBusy = false;

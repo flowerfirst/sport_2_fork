@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using oculus_sport.Services.Auth;
 using oculus_sport.ViewModels.Base;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace oculus_sport.ViewModels.Auth
 {
@@ -10,7 +11,7 @@ namespace oculus_sport.ViewModels.Auth
         private readonly IAuthService _authService;
 
         [ObservableProperty]
-        private string _email =  string.Empty;
+        private string _email = string.Empty;
 
         [ObservableProperty]
         private string _password = string.Empty;
@@ -29,13 +30,15 @@ namespace oculus_sport.ViewModels.Auth
             try
             {
                 IsBusy = true;
-                // In future: var result = await _authService.LoginAsync(Email, Password);
 
-                // Simulation for UI testing
-                await Task.Delay(1000);
+                // Call the actual auth service (now returns User object)
+                var result = await _authService.LoginAsync(Email, Password);
 
-                // Navigate to Main Tabs (HomePage) using absolute routing
-                await Shell.Current.GoToAsync($"//{nameof(Views.Main.HomePage)}");
+                if (result != null)
+                {
+                    // Success! Navigate to Main Tabs (HomePage) using absolute routing
+                    await Shell.Current.GoToAsync($"//{nameof(Views.Main.HomePage)}");
+                }
             }
             catch (Exception ex)
             {

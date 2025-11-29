@@ -1,0 +1,120 @@
+is_global = true
+build_property.EnableAotAnalyzer = 
+build_property.EnableSingleFileAnalyzer = 
+build_property.EnableTrimAnalyzer = false
+build_property.IncludeAllContentForSelfExtract = 
+build_property.MvvmToolkitEnableINotifyPropertyChangingSupport = true
+build_property._MvvmToolkitIsUsingWindowsRuntimePack = false
+build_property.CsWinRTComponent = 
+build_property.CsWinRTAotOptimizerEnabled = 
+build_property.CsWinRTAotWarningLevel = 
+build_property.TargetFramework = net9.0-ios
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = false
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = oculus_sport
+build_property.ProjectDir = C:\Users\jianh\Desktop\oculus_sport\oculus_sport\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.EffectiveAnalysisLevelStyle = 9.0
+build_property.EnableCodeStyleSeverity = 
+
+[C:/Users/jianh/Desktop/oculus_sport/oculus_sport/App.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = oculus_sport.App.xaml
+build_metadata.AdditionalFiles.TargetPath = App.xaml
+build_metadata.AdditionalFiles.RelativePath = App.xaml
+
+[C:/Users/jianh/Desktop/oculus_sport/oculus_sport/AppShell.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = oculus_sport.AppShell.xaml
+build_metadata.AdditionalFiles.TargetPath = AppShell.xaml
+build_metadata.AdditionalFiles.RelativePath = AppShell.xaml
+
+[C:/Users/jianh/Desktop/oculus_sport/oculus_sport/MainPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = oculus_sport.MainPage.xaml
+build_metadata.AdditionalFiles.TargetPath = MainPage.xaml
+build_metadata.AdditionalFiles.RelativePath = MainPage.xaml
+
+[C:/Users/jianh/Desktop/oculus_sport/oculus_sport/Resources/Styles/Colors.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = oculus_sport.Resources.Styles.Colors.xaml
+build_metadata.AdditionalFiles.TargetPath = Resources\Styles\Colors.xaml
+build_metadata.AdditionalFiles.RelativePath = Resources\Styles\Colors.xaml
+
+[C:/Users/jianh/Desktop/oculus_sport/oculus_sport/Resources/Styles/Styles.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = oculus_sport.Resources.Styles.Styles.xaml
+build_metadata.AdditionalFiles.TargetPath = Resources\Styles\Styles.xaml
+build_metadata.AdditionalFiles.RelativePath = Resources\Styles\Styles.xaml
+
+[C:/Users/jianh/Desktop/oculus_sport/oculus_sport/Views/Auth/LoginPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = oculus_sport.Views.Auth.LoginPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Views\Auth\LoginPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Views\Auth\LoginPage.xaml
+
+[C:/Users/jianh/Desktop/oculus_sport/oculus_sport/Views/Auth/SignUpPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = oculus_sport.Views.Auth.SignUpPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Views\Auth\SignUpPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Views\Auth\SignUpPage.xaml
+
+[C:/Users/jianh/Desktop/oculus_sport/oculus_sport/Views/Main/BookingConfirmationPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = oculus_sport.Views.Main.BookingConfirmationPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Views\Main\BookingConfirmationPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Views\Main\BookingConfirmationPage.xaml
+
+[C:/Users/jianh/Desktop/oculus_sport/oculus_sport/Views/Main/BookingDetailsPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = oculus_sport.Views.Main.BookingDetailsPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Views\Main\BookingDetailsPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Views\Main\BookingDetailsPage.xaml
+
+[C:/Users/jianh/Desktop/oculus_sport/oculus_sport/Views/Main/BookingPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = oculus_sport.Views.Main.BookingPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Views\Main\BookingPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Views\Main\BookingPage.xaml
+
+[C:/Users/jianh/Desktop/oculus_sport/oculus_sport/Views/Main/BookingSuccessPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = oculus_sport.Views.Main.BookingSuccessPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Views\Main\BookingSuccessPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Views\Main\BookingSuccessPage.xaml
+
+[C:/Users/jianh/Desktop/oculus_sport/oculus_sport/Views/Main/EventPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = oculus_sport.Views.Main.EventPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Views\Main\EventPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Views\Main\EventPage.xaml
+
+[C:/Users/jianh/Desktop/oculus_sport/oculus_sport/Views/Main/HistoryPage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = oculus_sport.Views.Main.HistoryPage.xaml
+build_metadata.AdditionalFiles.TargetPath = Views\Main\HistoryPage.xaml
+build_metadata.AdditionalFiles.RelativePath = Views\Main\HistoryPage.xaml
+
+[C:/Users/jianh/Desktop/oculus_sport/oculus_sport/Views/Main/HomePage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = oculus_sport.Views.Main.HomePage.xaml
+build_metadata.AdditionalFiles.TargetPath = Views\Main\HomePage.xaml
+build_metadata.AdditionalFiles.RelativePath = Views\Main\HomePage.xaml
+
+[C:/Users/jianh/Desktop/oculus_sport/oculus_sport/Views/Main/ProfilePage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = oculus_sport.Views.Main.ProfilePage.xaml
+build_metadata.AdditionalFiles.TargetPath = Views\Main\ProfilePage.xaml
+build_metadata.AdditionalFiles.RelativePath = Views\Main\ProfilePage.xaml
+
+[C:/Users/jianh/Desktop/oculus_sport/oculus_sport/Views/Main/SchedulePage.xaml]
+build_metadata.AdditionalFiles.GenKind = Xaml
+build_metadata.AdditionalFiles.ManifestResourceName = oculus_sport.Views.Main.SchedulePage.xaml
+build_metadata.AdditionalFiles.TargetPath = Views\Main\SchedulePage.xaml
+build_metadata.AdditionalFiles.RelativePath = Views\Main\SchedulePage.xaml

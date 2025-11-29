@@ -1,8 +1,9 @@
-using System.Text.RegularExpressions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using oculus_sport.Services.Auth;
 using oculus_sport.ViewModels.Base;
+using System.Text.RegularExpressions;
+using System.Xml.Linq;
 
 namespace oculus_sport.ViewModels.Auth
 {
@@ -19,6 +20,13 @@ namespace oculus_sport.ViewModels.Auth
         [ObservableProperty]
         private string _confirmPassword = string.Empty;
 
+        // Added properties required for Backend Signup
+        [ObservableProperty]
+        private string _name = string.Empty;
+
+        [ObservableProperty]
+        private string _studentId = string.Empty;
+
         public SignUpPageViewModel(IAuthService authService)
         {
             _authService = authService;
@@ -31,9 +39,13 @@ namespace oculus_sport.ViewModels.Auth
             if (IsBusy) return;
 
             // 1. Basic Validation
-            if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password) || string.IsNullOrWhiteSpace(ConfirmPassword))
+            if (string.IsNullOrWhiteSpace(Email) ||
+                string.IsNullOrWhiteSpace(Password) ||
+                string.IsNullOrWhiteSpace(ConfirmPassword) ||
+                string.IsNullOrWhiteSpace(Name) ||
+                string.IsNullOrWhiteSpace(StudentId))
             {
-                await Shell.Current.DisplayAlert("Error", "Please fill in all fields.", "OK");
+                await Shell.Current.DisplayAlert("Error", "Please fill in all fields (Email, Password, Name, ID).", "OK");
                 return;
             }
 
@@ -56,18 +68,14 @@ namespace oculus_sport.ViewModels.Auth
             {
                 IsBusy = true;
 
-                // Call Auth Service (This is currently mocked or points to Firebase)
-                bool success = await _authService.SignUpAsync(Email, Password);
+                // Call Auth Service with all required backend parameters
+                var newUser = await _authService.SignUpAsync(Email, Password, Name, StudentId);
 
-                if (success)
+                if (newUser != null)
                 {
                     await Shell.Current.DisplayAlert("Success", "Account created successfully! Please log in.", "OK");
                     // Redirect to Login Page
                     await Shell.Current.GoToAsync("..");
-                }
-                else
-                {
-                    await Shell.Current.DisplayAlert("Error", "Sign up failed. Please try again.", "OK");
                 }
             }
             catch (Exception ex)
@@ -90,7 +98,6 @@ namespace oculus_sport.ViewModels.Auth
         private bool IsStrongPassword(string password)
         {
             // Regex: At least 8 chars, 1 Upper, 1 Special char
-            // Special chars include: !@#$%^&*()_+-=[]{}|;':",./<>?
             var regex = new Regex(@"^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':""\\|,.<>\/?]).{8,}$");
             return regex.IsMatch(password);
         }

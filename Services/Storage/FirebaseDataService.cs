@@ -1,39 +1,169 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Linq;
+using oculus_sport.Models;
+using System.Diagnostics;
+using Plugin.Firebase.Firestore;
 
 namespace oculus_sport.Services.Storage
 {
+    // IDatabaseService implementation using Firestore
     public class FirebaseDataService : IDatabaseService
     {
-        public Task<T> GetItemAsync<T>(string id) where T : class
+        // Backing field left null until first use
+        private IFirebaseFirestore? _firestoreClient;
+
+        // Lazy accessor — resolves the plugin at first use (avoids DI-time exception).
+        private IFirebaseFirestore FirestoreClient
         {
-            // Implementation for getting an item from Firebase
-            throw new NotImplementedException();
+            get
+            {
+                if (_firestoreClient != null)
+                    return _firestoreClient;
+
+                // Try to resolve the platform implementation.
+                _firestoreClient = CrossFirebaseFirestore.Current;
+
+                if (_firestoreClient == null)
+                    throw new InvalidOperationException("Firestore plugin not available on this platform.");
+
+                return _firestoreClient;
+            }
         }
 
-        public Task<IEnumerable<T>> GetItemsAsync<T>() where T : class
+        public FirebaseDataService()
         {
-            // Implementation for getting items from Firebase
-            throw new NotImplementedException();
+            // Do not access CrossFirebaseFirestore.Current here to avoid NotImplementedException
+            // during DI/container construction. Access happens lazily via FirestoreClient.
         }
 
-        public Task<bool> AddItemAsync<T>(T item)
+        private static string GetCollectionName<T>() where T : class
         {
-            // Implementation for adding an item to Firebase
-            throw new NotImplementedException();
+            return $"{typeof(T).Name.ToLower()}s";
         }
 
-        public Task<bool> UpdateItemAsync<T>(T item)
+        public async Task<T?> GetItemAsync<T>(string id) where T : class
         {
-            // Implementation for updating an item in Firebase
-            throw new NotImplementedException();
+            try
+            {
+                var collectionName = GetCollectionName<T>();
+
+                var snapshot = await FirestoreClient
+                    .GetCollection(collectionName)
+                    .GetDocument(id)
+                    .GetDocumentSnapshotAsync<T>();
+
+                if (snapshot.Data != null)
+                    return snapshot.Data;
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Firestore GetItemAsync error: {ex.Message}");
+                return null;
+            }
         }
 
-        public Task<bool> DeleteItemAsync<T>(string id)
+        public async Task<IEnumerable<T>> GetItemsAsync<T>() where T : class
         {
-            // Implementation for deleting an item from Firebase
-            throw new NotImplementedException();
+            try
+            {
+                var collectionName = GetCollectionName<T>();
+
+                var querySnapshot = await FirestoreClient
+                    .GetCollection(collectionName)
+                    .GetDocumentsAsync<T>();
+
+                return querySnapshot.Documents
+                    .Where(d => d.Data != null)
+                    .Select(d => d.Data)!;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Firestore GetItemsAsync error: {ex.Message}");
+                return Enumerable.Empty<T>();
+            }
+        }
+
+        public async Task<bool> AddItemAsync<T>(T item) where T : class
+        {
+            try
+            {
+                var collectionName = GetCollectionName<T>();
+                await FirestoreClient
+                    .GetCollection(collectionName)
+                    .AddDocumentAsync(item);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Firestore Error] AddItemAsync failed for {typeof(T).Name}: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> UpdateItemAsync<T>(T item) where T : class
+        {
+            var idProperty = typeof(T).GetProperty("Id");
+            string id = idProperty?.GetValue(item)?.ToString() ?? string.Empty;
+
+            if (string.IsNullOrEmpty(id))
+            {
+                Debug.WriteLine($"[Firestore Error] Cannot update {typeof(T).Name}: 'Id' property is required.");
+                return false;
+            }
+
+            try
+            {
+                var collectionName = GetCollectionName<T>();
+
+                await FirestoreClient
+                    .GetCollection(collectionName)
+                    .GetDocument(id)
+                    .SetDataAsync(item);
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Firestore Error] UpdateItemAsync failed for {typeof(T).Name} ID {id}: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteItemAsync<T>(string id) where T : class
+        {
+            try
+            {
+                var collectionName = GetCollectionName<T>();
+                await FirestoreClient
+                    .GetCollection(collectionName)
+                    .GetDocument(id)
+                    .DeleteDocumentAsync();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Firestore Error] DeleteItemAsync failed for {typeof(T).Name} ID {id}: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<User?> GetUserByFirebaseIdAsync(string userId)
+        {
+            return await GetItemAsync<User>(userId);
+        }
+
+        public async Task SaveUserProfileAsync(User user)
+        {
+            if (string.IsNullOrEmpty(user.Id))
+                throw new ArgumentException("User ID (Firebase UID) must be set before saving the profile.");
+
+            await UpdateItemAsync(user);
         }
     }
 }

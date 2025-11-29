@@ -10,6 +10,7 @@
     <ScrollView>
         <VerticalStackLayout Spacing="25" Padding="30" VerticalOptions="Center">
 
+            <!-- 1. CORPORATE LOGO -->
             <Image Source="uts_logo.png" 
                    HeightRequest="180" 
                    HorizontalOptions="Center" 
@@ -29,7 +30,9 @@
                    HorizontalOptions="Center"
                    Margin="0,10,0,10"/>
 
+            <!-- 2. LOGIN FORM -->
             <VerticalStackLayout Spacing="15">
+                <!-- Email/Username Entry -->
                 <Border Stroke="{StaticResource Gray300}" StrokeThickness="1" StrokeShape="RoundRectangle 10" Padding="15,0">
                     <Entry Placeholder="Username or Email" 
                            Text="{Binding Email}"
@@ -38,6 +41,7 @@
                            HeightRequest="50"/>
                 </Border>
 
+                <!-- Password Entry -->
                 <Border Stroke="{StaticResource Gray300}" StrokeThickness="1" StrokeShape="RoundRectangle 10" Padding="15,0">
                     <Entry Placeholder="Password" 
                            IsPassword="True"
@@ -48,6 +52,7 @@
                 </Border>
             </VerticalStackLayout>
 
+            <!-- 3. ACTIONS -->
             <Button Text="Log in" 
                     Command="{Binding LoginCommand}"
                     BackgroundColor="{StaticResource Primary}"
@@ -62,6 +67,7 @@
                                Color="{StaticResource Primary}"
                                HorizontalOptions="Center"/>
 
+            <!-- Bottom Section: Signup Link -->
             <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
                 <Label Text="Don't have an account? " TextColor="{StaticResource Gray500}"/>
                 <Label Text="Sign up" 

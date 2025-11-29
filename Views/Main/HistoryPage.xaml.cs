@@ -1,15 +1,14 @@
+using Microsoft.Maui.Controls;
 using oculus_sport.ViewModels.Main;
 
 namespace oculus_sport.Views.Main;
 
 public partial class HistoryPage : ContentPage
 {
-    private readonly HistoryPageViewModel _viewModel;
-
     public HistoryPage(HistoryPageViewModel vm)
     {
         InitializeComponent();
-        BindingContext = _viewModel = vm;
+        BindingContext = vm; // Set BindingContext directly
     }
 
     protected override void OnAppearing()
@@ -17,9 +16,9 @@ public partial class HistoryPage : ContentPage
         base.OnAppearing();
 
         // Force refresh every time the user opens this tab
-        if (_viewModel.LoadBookingsCommand.CanExecute(null))
+        if (BindingContext is HistoryPageViewModel viewModel)
         {
-            _viewModel.LoadBookingsCommand.Execute(null);
+            viewModel.OnAppearing();
         }
     }
 }

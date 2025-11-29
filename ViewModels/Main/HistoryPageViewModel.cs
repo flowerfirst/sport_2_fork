@@ -3,7 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using oculus_sport.Models;
 using oculus_sport.Services;
-using oculus_sport.Services.Storage; 
+using oculus_sport.Services.Storage;
 using oculus_sport.ViewModels.Base;
 
 namespace oculus_sport.ViewModels.Main;
@@ -11,7 +11,7 @@ namespace oculus_sport.ViewModels.Main;
 public partial class HistoryPageViewModel : BaseViewModel
 {
     private readonly IBookingService _firebaseService;
-    private readonly LocalDatabaseService _localService; 
+    private readonly LocalDatabaseService _localService;
     private readonly Services.Other.ConnectivityService _connectivity;
 
     [ObservableProperty]

@@ -53,8 +53,7 @@
                         <Switch Grid.Column="1" IsToggled="{Binding IsDarkMode}" />
                     </Grid>
                 </Border>
-            </VerticalStackLayout>
-            -->
+            </VerticalStackLayout> -->
 
             <!-- Actions -->
             <Button Text="Log Out" 

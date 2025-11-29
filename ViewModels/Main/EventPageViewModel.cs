@@ -1,9 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
-using Microsoft.Extensions.Logging;
+using CommunityToolkit.Mvvm.Input;
 using oculus_sport.Models;
 using oculus_sport.ViewModels.Base;
 using System.Collections.ObjectModel;
-using CommunityToolkit.Mvvm.Input;
 
 namespace oculus_sport.ViewModels.Main;
 
@@ -28,7 +27,7 @@ public partial class EventPageViewModel : BaseViewModel
                 Description = "Join the biggest campus tournament of the year! Registration ends soon.",
                 DateDisplay = "Nov 12",
                 IsNew = true,
-                ImageUrl = "pingpong_court.jpg"
+                ImageUrl = "badminton_court.webp"
             },
             new SportEvent
             {
@@ -36,7 +35,7 @@ public partial class EventPageViewModel : BaseViewModel
                 Description = "Tennis Court A will be closed for resurfacing this weekend.",
                 DateDisplay = "2 days ago",
                 IsNew = false,
-                ImageUrl = "pingpong_court.jpg"
+                ImageUrl = "badminton_court.webp"
             },
             new SportEvent
             {
@@ -44,7 +43,7 @@ public partial class EventPageViewModel : BaseViewModel
                 Description = "Free coaching session for beginners. Equipment provided.",
                 DateDisplay = "Oct 30",
                 IsNew = false,
-                ImageUrl = "pingpong_court.jpg"
+                ImageUrl = "badminton_court.webp"
             }
         };
     }

@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using oculus_sport.Models;
 using oculus_sport.Services;
+using oculus_sport.Services.Auth; // Added for future user check
 using oculus_sport.ViewModels.Base;
 
 namespace oculus_sport.ViewModels.Main;
@@ -11,9 +12,10 @@ namespace oculus_sport.ViewModels.Main;
 public partial class BookingViewModel : BaseViewModel
 {
     private readonly IBookingService _bookingService;
+    private readonly IAuthService _authService; // Kept from backend changes
 
     [ObservableProperty]
-    private Facility _facility = new(); 
+    private Facility _facility = new();
 
     [ObservableProperty]
     private DateTime _selectedDate = DateTime.Now;
@@ -24,9 +26,11 @@ public partial class BookingViewModel : BaseViewModel
     [ObservableProperty]
     private string _availabilityMessage = string.Empty;
 
-    public BookingViewModel(IBookingService bookingService)
+    // Updated constructor to accept both services
+    public BookingViewModel(IBookingService bookingService, IAuthService authService)
     {
         _bookingService = bookingService;
+        _authService = authService;
         Title = "Select Time";
     }
 
@@ -48,10 +52,9 @@ public partial class BookingViewModel : BaseViewModel
         bool isOpen = false;
         List<string> validSlots = new();
 
-        // 1. Check Rules based on Facility Name (Simulating DB rules)
+        // 1. Check Rules based on Facility Name (Your Allocation Logic)
         if (Facility.Name.Contains("Badminton"))
         {
-            // Mon, Thu, Fri
             if (day == DayOfWeek.Monday || day == DayOfWeek.Thursday || day == DayOfWeek.Friday)
             {
                 isOpen = true;
@@ -64,7 +67,6 @@ public partial class BookingViewModel : BaseViewModel
         }
         else if (Facility.Name.Contains("Ping-Pong"))
         {
-            // Mon, Fri
             if (day == DayOfWeek.Monday || day == DayOfWeek.Friday)
             {
                 isOpen = true;
@@ -77,7 +79,6 @@ public partial class BookingViewModel : BaseViewModel
         }
         else if (Facility.Name.Contains("Basketball"))
         {
-            // Mon-Fri
             if (day != DayOfWeek.Saturday && day != DayOfWeek.Sunday)
             {
                 isOpen = true;
@@ -113,7 +114,6 @@ public partial class BookingViewModel : BaseViewModel
         var selectedSlot = TimeSlots.FirstOrDefault(s => s.IsSelected);
         if (selectedSlot == null)
         {
-            // Show specific error if closed, or generic if just not selected
             string msg = string.IsNullOrEmpty(AvailabilityMessage) ? "Please select a time slot." : AvailabilityMessage;
             await Shell.Current.DisplayAlert("Unavailable", msg, "OK");
             return;
@@ -122,7 +122,8 @@ public partial class BookingViewModel : BaseViewModel
         // Create Draft Booking
         var draftBooking = new Booking
         {
-            UserId = "Tony",
+            // Use Auth Service to get ID if available, else placeholder
+            UserId = _authService.GetCurrentUser()?.Id ?? "Tony",
             FacilityName = Facility.Name,
             FacilityImage = Facility.ImageUrl,
             Location = Facility.Location,
