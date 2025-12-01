@@ -1,5 +1,6 @@
 ﻿using Microsoft.Maui.Storage;
 using oculus_sport.Models;
+using oculus_sport.Services.Storage;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
@@ -119,10 +120,12 @@ namespace oculus_sport.Services.Auth
                 StudentId = studentId
             };
 
+            //------------------- Save profile info into Firestore (CONNECT TO FIREBASEDATABASERVICE.CS)
+            var dataService = new FirebaseDataService();
+            await dataService.SaveUserToFirestoreAsync(_currentUser, authResponse.IdToken);
+
             await SecureStorage.SetAsync("idToken", authResponse.IdToken);
             await SecureStorage.SetAsync("refreshToken", authResponse.RefreshToken);
-
-            Console.WriteLine($"Signup successful for user: {authResponse.Email} (ID: {authResponse.LocalId})");
 
             return _currentUser!;
         }

@@ -4,10 +4,51 @@ using System.Threading.Tasks;
 using System.Linq;
 using oculus_sport.Models;
 using System.Diagnostics;
-//using Plugin.Firebase.Firestore;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace oculus_sport.Services.Storage
 {
+    public class FirebaseDataService
+    {
+        private readonly HttpClient _httpClient = new HttpClient();
+        private readonly string _projectId = "oculus-sport";
+
+        // ----------- save user sign up info into firestore using REST API
+        public async Task SaveUserToFirestoreAsync(User user, string idToken)
+        {
+            var url = $"https://firestore.googleapis.com/v1/projects/{_projectId}/databases/(default)/documents/users/{user.Id}";
+
+            var payload = new
+            {
+                fields = new
+                {
+                    name = new { stringValue = user.Name },
+                    email = new { stringValue = user.Email },
+                    studentId = new { stringValue = user.StudentId }
+                }
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+
+            var request = new HttpRequestMessage(HttpMethod.Patch, url)
+            {
+                Content = new StringContent(json, Encoding.UTF8, "application/json")
+            };
+
+            request.Headers.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+
+            var response = await _httpClient.SendAsync(request);
+            var result = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+                throw new Exception($"Firestore save failed: {result}");
+        }
+    }
+
     // IDatabaseService implementation using Firestore
     //public class FirebaseDataService : IDatabaseService
     //{
