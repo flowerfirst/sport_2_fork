@@ -55,6 +55,8 @@ public static class MauiProgram
 
         builder.Services.AddSingleton<HttpClient>();
         builder.Services.AddSingleton<IAuthService, FirebaseAuthService>();
+        builder.Services.AddSingleton<FirebaseDataService>();
+
 
         builder.Services.AddSingleton<Services.Other.ConnectivityService>();
         builder.Services.AddSingleton<IBookingService, BookingService>();

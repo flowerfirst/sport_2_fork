@@ -4,9 +4,18 @@ namespace oculus_sport.Views.Main;
 
 public partial class ProfilePage : ContentPage
 {
+    private readonly ProfilePageViewModel _vm;
+
     public ProfilePage(ProfilePageViewModel vm)
     {
         InitializeComponent();
-        BindingContext = vm;
+        _vm = vm;
+        BindingContext = _vm;
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        await _vm.LoadAsync();
     }
 }

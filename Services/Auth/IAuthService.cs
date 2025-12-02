@@ -13,6 +13,7 @@ namespace oculus_sport.Services.Auth
         //void Logout();
         Task LogoutAsync();
 
+        // get current user - profile page
         User? GetCurrentUser();
         Task<string?> RefreshIdTokenAsync();
     }

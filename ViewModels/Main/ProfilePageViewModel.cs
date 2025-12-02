@@ -12,13 +12,13 @@ public partial class ProfilePageViewModel : BaseViewModel
     private readonly IAuthService _authService;
 
     [ObservableProperty]
-    private string _name = "Tony Choo";
+    private string _name = string.Empty;
 
     [ObservableProperty]
-    private string _studentId = "BCS23020003";
+    private string _studentId = string.Empty;
 
     [ObservableProperty]
-    private string _email = "tony@student.uts.edu.my";
+    private string _email = string.Empty;
 
     [ObservableProperty]
     private bool _isDarkMode;
@@ -30,6 +30,24 @@ public partial class ProfilePageViewModel : BaseViewModel
 
         // Check current theme
         IsDarkMode = Application.Current.UserAppTheme == AppTheme.Dark;
+    }
+
+    // --- load user info
+    public async Task LoadAsync()
+    {
+        await _authService.RefreshIdTokenAsync();
+
+        var user = _authService.GetCurrentUser();
+        if (user == null)
+        {
+            // if no session > redirect to logn/signup
+            await Shell.Current.GoToAsync("//SignUpPage");
+            return;
+        }
+
+        Name = user.Name;
+        StudentId = user.StudentId;
+        Email = user.Email;
     }
 
     partial void OnIsDarkModeChanged(bool value)

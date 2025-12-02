@@ -1,12 +1,13 @@
+using oculus_sport.Models;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Linq;
-using oculus_sport.Models;
 using System.Diagnostics;
+using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Threading.Tasks;
 
 namespace oculus_sport.Services.Storage
@@ -15,6 +16,65 @@ namespace oculus_sport.Services.Storage
     {
         private readonly HttpClient _httpClient = new HttpClient();
         private readonly string _projectId = "oculus-sport";
+
+
+        //------------ sync login + profile
+        private const string UsersCollection = "users";
+        public FirebaseDataService(HttpClient httpClient)
+        {
+            _httpClient = httpClient;
+        }
+        //-------------- sync user login w firestore
+        private static string GetStringField(JsonElement fields, string name)
+        {
+            if (fields.ValueKind != JsonValueKind.Object) return string.Empty;
+            if (!fields.TryGetProperty(name, out var field)) return string.Empty;
+            if (field.ValueKind != JsonValueKind.Object) return string.Empty;
+            if (!field.TryGetProperty("stringValue", out var value)) return string.Empty;
+            return value.GetString() ?? string.Empty;
+        }
+
+        public async Task<User?> GetUserFromFirestore(string uid, string idToken)
+        {
+            var url = $"https://firestore.googleapis.com/v1/projects/{_projectId}/databases/(default)/documents/{UsersCollection}/{uid}";
+
+            var req = new HttpRequestMessage(HttpMethod.Get, url);
+            req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", idToken);
+
+            var res = await _httpClient.SendAsync(req);
+
+            //---handle not-found or unauthorized gracefully
+            if (res.StatusCode == System.Net.HttpStatusCode.NotFound ||
+                res.StatusCode == System.Net.HttpStatusCode.Unauthorized ||
+                res.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            {
+                return null;
+            }
+
+            //---throw for other non-success to surface unexpected errors
+            res.EnsureSuccessStatusCode();
+
+            var json = await res.Content.ReadAsStringAsync();
+            var doc = JsonSerializer.Deserialize<JsonElement>(json);
+
+            //--firestore doc should have fields
+            if (!doc.TryGetProperty("fields", out var fields) || fields.ValueKind != JsonValueKind.Object)
+                return null;
+
+            var name = GetStringField(fields, "name");
+            var email = GetStringField(fields, "email");
+            var studentId = GetStringField(fields, "studentId");
+
+            return new User
+            {
+                Id = uid,
+                Name = name,
+                Email = email,
+                StudentId = studentId
+            };
+        }
+
+
 
         // ----------- save user sign up info into firestore using REST API
         public async Task SaveUserToFirestoreAsync(User user, string idToken)

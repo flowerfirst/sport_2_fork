@@ -11,12 +11,15 @@ namespace oculus_sport.Services.Auth
     public class FirebaseAuthService : IAuthService
     {
         private readonly HttpClient _httpClient;
+        private readonly FirebaseDataService _dataService;
         private const string ApiKey = "AIzaSyCYLKCEnZv33cviHuNRy4Go8IZVWcu-0aI";
         private User? _currentUser;
 
-        public FirebaseAuthService(HttpClient httpClient)
+
+        public FirebaseAuthService(HttpClient httpClient, FirebaseDataService dataService)
         {
             _httpClient = httpClient;
+            _dataService = dataService;
         }
 
         private class FirebaseAuthResponse
@@ -47,10 +50,7 @@ namespace oculus_sport.Services.Auth
             Console.WriteLine("Firebase raw response:");
             Console.WriteLine(result);
 
-            var authResponse = JsonSerializer.Deserialize<FirebaseAuthResponse>(
-                result,
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
-            );
+            var authResponse = JsonSerializer.Deserialize<FirebaseAuthResponse>(result, new JsonSerializerOptions { PropertyNameCaseInsensitive = true } );
 
             if (!response.IsSuccessStatusCode || !string.IsNullOrEmpty(authResponse?.Error?.Message))
             {
@@ -71,6 +71,15 @@ namespace oculus_sport.Services.Auth
             await SecureStorage.SetAsync("refreshToken", authResponse.RefreshToken);
 
             Console.WriteLine($"Login successful for user: {authResponse.Email} (ID: {authResponse.LocalId})");
+
+            // --------- fetch profile from firestore
+            var profile = await _dataService.GetUserFromFirestore(authResponse.LocalId, authResponse.IdToken);
+            if(profile != null)
+            {
+                _currentUser.Name = profile.Name;
+                _currentUser.Email = profile.Email;
+                _currentUser.StudentId = profile.StudentId;
+            }
 
             return _currentUser!;
         }
@@ -121,8 +130,8 @@ namespace oculus_sport.Services.Auth
             };
 
             //------------------- Save profile info into Firestore (CONNECT TO FIREBASEDATABASERVICE.CS)
-            var dataService = new FirebaseDataService();
-            await dataService.SaveUserToFirestoreAsync(_currentUser, authResponse.IdToken);
+            //var dataService = new FirebaseDataService(_httpClient); //updatedd
+            await _dataService.SaveUserToFirestoreAsync(_currentUser, authResponse.IdToken);
 
             await SecureStorage.SetAsync("idToken", authResponse.IdToken);
             await SecureStorage.SetAsync("refreshToken", authResponse.RefreshToken);
@@ -161,9 +170,13 @@ namespace oculus_sport.Services.Auth
         // ------------------Log out user, clear stored tokens
         public async Task LogoutAsync()
         {
+            await Task.Delay(200);
+
             _currentUser = null;
-            await SecureStorage.SetAsync("idToken", string.Empty);
-            await SecureStorage.SetAsync("refreshToken", string.Empty);
+            //await SecureStorage.SetAsync("idToken", string.Empty);
+            //await SecureStorage.SetAsync("refreshToken", string.Empty);
+            SecureStorage.Remove("idToken");
+            SecureStorage.Remove("refreshToken");
         }
 
         public User? GetCurrentUser() => _currentUser;
