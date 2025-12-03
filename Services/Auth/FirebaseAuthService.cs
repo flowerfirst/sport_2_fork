@@ -81,6 +81,8 @@ namespace oculus_sport.Services.Auth
                 _currentUser.StudentId = profile.StudentId;
             }
 
+            // -------- sync homepage username with login
+
             return _currentUser!;
         }
 

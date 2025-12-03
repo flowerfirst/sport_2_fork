@@ -42,11 +42,13 @@ namespace oculus_sport.ViewModels.Auth
                 // Call the actual auth service (returns User object)
                 var result = await _authService.LoginAsync(Email, Password);
 
+                // ---- sync username in homepage w login
                 if (result != null)
                 {
-                    // Success! Navigate to Main Tabs (HomePage) using absolute routing
-                    await Shell.Current.GoToAsync($"//{nameof(Views.Main.HomePage)}");
+                    await Shell.Current.GoToAsync($"//{nameof(Views.Main.HomePage)}", 
+                        new Dictionary<string, object>{{"User", result }});
                 }
+
             }
             catch (Exception ex)
             {
@@ -56,6 +58,7 @@ namespace oculus_sport.ViewModels.Auth
             {
                 IsBusy = false;
             }
+
         }
 
 
