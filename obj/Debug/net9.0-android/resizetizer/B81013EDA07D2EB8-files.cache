@@ -1,9 +1,12 @@
-﻿obj\Debug\net9.0-android\resizetizer\r\drawable\badminton_court.png
-obj\Debug\net9.0-android\resizetizer\r\drawable\calendar.png
+﻿obj\Debug\net9.0-android\resizetizer\r\drawable\calendar.png
 obj\Debug\net9.0-android\resizetizer\r\drawable\clock.png
 obj\Debug\net9.0-android\resizetizer\r\drawable\event.png
+obj\Debug\net9.0-android\resizetizer\r\drawable\history.jpg
 obj\Debug\net9.0-android\resizetizer\r\drawable\home.png
+obj\Debug\net9.0-android\resizetizer\r\drawable\notification.png
+obj\Debug\net9.0-android\resizetizer\r\drawable\pingpong_court.jpg
 obj\Debug\net9.0-android\resizetizer\r\drawable\user.png
+obj\Debug\net9.0-android\resizetizer\r\drawable\uts_logo.png
 obj\Debug\net9.0-android\resizetizer\r\drawable-hdpi\dotnet_bot.png
 obj\Debug\net9.0-android\resizetizer\r\drawable-mdpi\dotnet_bot.png
 obj\Debug\net9.0-android\resizetizer\r\drawable-xhdpi\dotnet_bot.png

@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("oculus_sport")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+3356ebeb1c244e9c7d0ef70d5b40f59331460b99")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0+c19434956a16006de3e974f4f5597cc39d73d820")]
 [assembly: System.Reflection.AssemblyProductAttribute("oculus_sport")]
 [assembly: System.Reflection.AssemblyTitleAttribute("oculus_sport")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
