@@ -10,11 +10,21 @@
         Shell.TabBarTitleColor="{StaticResource Primary}">
 
     <!-- Auth section -->
-    <ShellItem Route="Auth">
-        <ShellContent ContentTemplate="{DataTemplate auth:LoginPage}" Route="LoginPage" />
-        <ShellContent ContentTemplate="{DataTemplate auth:SignUpPage}" Route="SignUpPage" />
-    </ShellItem>
-
+    <ShellContent
+        ContentTemplate="{DataTemplate auth:LoginPage}"
+        Route="LoginPage"
+        Title="Login"
+        Shell.FlyoutBehavior="Disabled" 
+        Shell.NavBarIsVisible="False"
+        Shell.TabBarIsVisible="False" />
+    
+    <ShellContent
+        ContentTemplate="{DataTemplate auth:SignUpPage}"
+        Title="Sign Up"
+        Route="SignUpPage"
+        Shell.FlyoutBehavior="Disabled"
+        Shell.NavBarIsVisible="False"
+        Shell.TabBarIsVisible="False" />
 
     <!-- Main TabBar -->
     <TabBar>

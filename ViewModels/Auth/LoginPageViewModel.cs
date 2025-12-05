@@ -75,7 +75,7 @@ namespace oculus_sport.ViewModels.Auth
         async Task GoToSignUp()
         {
             // Navigate to Sign Up Page
-            await Shell.Current.GoToAsync("//Auth/SignUpPage");
+            await Shell.Current.GoToAsync("//SignUpPage");
 
         }
     }

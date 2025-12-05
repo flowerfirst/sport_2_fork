@@ -262,27 +262,49 @@ public class BookingService : IBookingService
         return res.IsSuccessStatusCode;
     }
 
+
     public async Task<List<Booking>> GetUserBookingsAsync(string userId)
     {
-        await Task.Delay(200);
+        var idToken = await SecureStorage.GetAsync("idToken");
+        var url = $"https://firestore.googleapis.com/v1/projects/{_projectId}/databases/(default)/documents/bookings";
+        var req = new HttpRequestMessage(HttpMethod.Get, url);
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", idToken);
 
-        Debug.WriteLine($"[BookingService] Fetching bookings for userId={userId}");
+        var res = await _httpClient.SendAsync(req);
+        var responseBody = await res.Content.ReadAsStringAsync();
+        Debug.WriteLine($"[Firestore GetUserBookings] Response status={res.StatusCode}");
 
-        var userBookings = _bookings
-            .Where(b => b.UserId == userId)
-            .OrderBy(b => b.Date)
-            .ToList();
+        var bookings = new List<Booking>();
 
-        Debug.WriteLine($"[BookingService] Found {userBookings.Count} bookings for userId={userId}");
-
-        foreach (var booking in userBookings)
+        if (res.IsSuccessStatusCode)
         {
-            Debug.WriteLine($"[BookingService] BookingId={booking.Id}, Facility={booking.FacilityName}, Date={booking.Date}, TimeSlot={booking.TimeSlot}, Status={booking.Status}");
+            var json = JsonDocument.Parse(responseBody);
+            foreach (var doc in json.RootElement.GetProperty("documents").EnumerateArray())
+            {
+                var fields = doc.GetProperty("fields");
+                var booking = new Booking
+                {
+                    Id = doc.GetProperty("name").GetString()?.Split('/').Last(),
+                    UserId = fields.GetProperty("userId").GetProperty("stringValue").GetString(),
+                    FacilityName = fields.GetProperty("facilityName").GetProperty("stringValue").GetString(),
+                    Date = DateTime.Parse(fields.GetProperty("date").GetProperty("timestampValue").GetString(), null, DateTimeStyles.RoundtripKind),
+                    TimeSlot = fields.GetProperty("timeSlot").GetProperty("stringValue").GetString(),
+                    SlotNumber = int.Parse(fields.GetProperty("slotNumber").GetProperty("integerValue").GetString()),
+                    Status = fields.GetProperty("status").GetProperty("stringValue").GetString(),
+                    TotalCost = fields.GetProperty("totalCost").GetProperty("stringValue").GetString(),
+                    ContactName = fields.GetProperty("contactName").GetProperty("stringValue").GetString(),
+                    ContactPhone = fields.GetProperty("contactPhone").GetProperty("stringValue").GetString(),
+                    ContactStudentId = fields.GetProperty("contactStudentId").GetProperty("stringValue").GetString()
+                };
+
+                if (booking.UserId == userId)
+                    bookings.Add(booking);
+            }
         }
 
-        return userBookings;
+        Debug.WriteLine($"[Firestore GetUserBookings] Found {bookings.Count} bookings for userId={userId}");
+        return bookings.OrderBy(b => b.Date).ToList();
     }
-
 
 
     public Task<bool> UpdateBookingStatusAsync(Booking booking, string newStatus)

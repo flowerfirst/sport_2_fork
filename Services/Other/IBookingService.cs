@@ -13,6 +13,8 @@ namespace oculus_sport.Services
         /// Executes a simulated secure booking process. Checks memory for availability.
         /// </summary>
         Task<Booking?> ProcessAndConfirmBookingAsync(Booking newBooking);
+        Task<List<Booking>> GetUserBookingsAsync(string userId);
+
 
         /// <summary>
         /// Fetches all time slots for a specific facility on a given date and marks them as available/booked.
@@ -35,7 +37,7 @@ namespace oculus_sport.Services
         /// <summary>
         /// Fetches all bookings for the current user.
         /// </summary>
-        Task<List<Booking>> GetUserBookingsAsync(string userId);
+
 
         /// <summary>
         /// Updates a booking status (e.g., Cancellation).

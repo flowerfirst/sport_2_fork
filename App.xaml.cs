@@ -88,7 +88,7 @@ public partial class App : Application
         }
 
         // Only if refresh fails → go to login
-        await Shell.Current.GoToAsync("//Auth/LoginPage");
+        await Shell.Current.GoToAsync("//LoginPage");
     }
 
 
