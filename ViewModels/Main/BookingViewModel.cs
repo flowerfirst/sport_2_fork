@@ -4,7 +4,10 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using oculus_sport.Models;
 using oculus_sport.Services;
-using oculus_sport.Services.Auth; // Added for future user check
+using oculus_sport.Services.Auth;
+using System.Text.Json;
+
+
 using oculus_sport.ViewModels.Base;
 
 namespace oculus_sport.ViewModels.Main;
@@ -14,6 +17,7 @@ public partial class BookingViewModel : BaseViewModel
 {
     private readonly IBookingService _bookingService;
     private readonly IAuthService _authService; // Kept from backend changes
+    private CancellationTokenSource _cts;
 
     [ObservableProperty]
     private Facility _facility = new();
@@ -40,6 +44,7 @@ public partial class BookingViewModel : BaseViewModel
     {
         Debug.WriteLine($"[DEBUG CHECK ONCHANGE] Facility received: {Facility.FacilityName}, {Facility.Location}, RM {Facility.Price}, Rating {Facility.Rating}");
         GenerateTimeSlots();
+        StartRealtimeListener();
     }
 
     async partial void OnSelectedDateChanged(DateTime value)
@@ -47,10 +52,49 @@ public partial class BookingViewModel : BaseViewModel
         IsBusy = true;
         await Task.Delay(300);
         GenerateTimeSlots();
+        StartRealtimeListener();
         IsBusy = false;
     }
 
-    private async void GenerateTimeSlots()
+    private async void StartRealtimeListener()
+    {
+        var idToken = await SecureStorage.GetAsync("idToken");
+        if (string.IsNullOrEmpty(idToken)) return;
+
+        await _bookingService.ListenToBookingsAsync(idToken, (json) =>
+        {
+            MainThread.BeginInvokeOnMainThread(() =>
+            {
+                try
+                {
+                    var docRoot = JsonDocument.Parse(json).RootElement;
+                    if (docRoot.TryGetProperty("documents", out var docs))
+                    {
+                        foreach (var d in docs.EnumerateArray())
+                        {
+                            var fields = d.GetProperty("fields");
+                            var facilityName = fields.GetProperty("facilityName").GetProperty("stringValue").GetString();
+                            var timeSlot = fields.GetProperty("timeSlot").GetProperty("stringValue").GetString();
+
+                            var slot = TimeSlots.FirstOrDefault(s => s.TimeRange == timeSlot && s.SlotName.Contains(facilityName));
+                            if (slot != null)
+                            {
+                                slot.IsAvailable = false;
+                                if (slot.IsSelected) slot.IsSelected = false; // deselect if already selected
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"[Listener] JSON parse error: {ex.Message}");
+                }
+            });
+        });
+    }
+
+
+    public async void GenerateTimeSlots()
     {
         Debug.WriteLine($"[GenerateTimeSlots] Facility={Facility.FacilityName}, Date={SelectedDate:yyyy-MM-dd}");
 
@@ -90,42 +134,49 @@ public partial class BookingViewModel : BaseViewModel
             else AvailabilityMessage = "Basketball is closed on weekends.";
         }
 
-        // Generate slots only for the selected facility
-        if (isOpen)
-        {
-            foreach (var slot in validSlots)
-            {
-                Debug.WriteLine($"[GenerateTimeSlots] Adding {Facility.FacilityName} - {slot}");
+        if (!isOpen) return;
 
-                TimeSlots.Add(new TimeSlot
-                {
-                    TimeRange = slot,
-                    SlotName = $"{Facility.FacilityName} • {slot}",
-                    IsAvailable = true
-                });
-            }
+        // Create initial slots
+        foreach (var slot in validSlots)
+        {
+            TimeSlots.Add(new TimeSlot
+            {
+                TimeRange = slot,
+                SlotName = $"{Facility.FacilityName} • {slot}",
+                IsAvailable = true
+            });
         }
 
-        // Availability check
-        if (isOpen)
+        try
         {
-            var existingSlots = await _bookingService.GetAvailableTimeSlotsAsync(Facility.FacilityName, SelectedDate);
-            Debug.WriteLine($"[GenerateTimeSlots] Service returned {existingSlots.Count()} slots.");
+            // Fetch existing bookings from Firestore
+            var existingBookings = await _bookingService.GetUserBookingsAsync("");
+            // Combine Firestore bookings + local pending bookings
+            var bookedSlots = existingBookings
+                .Where(b => b.FacilityName == Facility.FacilityName && b.Date.Date == SelectedDate.Date)
+                .Select(b => b.TimeSlot)
+                .Concat(_bookingService.LocalPendingBookings
+                    .Where(b => b.FacilityName == Facility.FacilityName && b.Date.Date == SelectedDate.Date)
+                    .Select(b => b.TimeSlot))
+                .ToHashSet();
 
+            // Mark unavailable
             foreach (var slot in TimeSlots)
             {
-                var match = existingSlots.FirstOrDefault(s =>
-                    s.TimeRange == slot.TimeRange &&
-                    s.SlotName == slot.SlotName);
-
-                if (match != null)
+                if (bookedSlots.Contains(slot.TimeRange))
                 {
-                    slot.IsAvailable = match.IsAvailable;
-                    Debug.WriteLine($"[GenerateTimeSlots] Slot {slot.SlotName} availability={slot.IsAvailable}");
+                    slot.IsAvailable = false;
+                    if (slot.IsSelected) slot.IsSelected = false; // deselect if needed
+                    Debug.WriteLine($"[GenerateTimeSlots] Slot {slot.SlotName} marked unavailable");
                 }
             }
         }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[GenerateTimeSlots] Error fetching bookings: {ex.Message}");
+        }
     }
+
 
 
 
@@ -133,9 +184,22 @@ public partial class BookingViewModel : BaseViewModel
     void SelectSlot(TimeSlot slot)
     {
         if (slot == null) return;
+
+        // Check availability in real-time
+        if (!slot.IsAvailable)
+        {
+            Shell.Current.DisplayAlert("Oops!", "Slot is booked. Choose another slot.", "OK");
+            return;
+        }
+
+        // Deselect all
         foreach (var s in TimeSlots) s.IsSelected = false;
+
+        // Select tapped slot
         slot.IsSelected = true;
     }
+
+
 
     [RelayCommand]
     async Task ConfirmBooking()
@@ -145,6 +209,12 @@ public partial class BookingViewModel : BaseViewModel
         {
             string msg = string.IsNullOrEmpty(AvailabilityMessage) ? "Please select a time slot." : AvailabilityMessage;
             await Shell.Current.DisplayAlert("Unavailable", msg, "OK");
+            return;
+        }
+
+        if (!selectedSlot.IsAvailable)
+        {
+            await Shell.Current.DisplayAlert("Oops!", "Slot is booked. Choose another slot.", "OK");
             return;
         }
 

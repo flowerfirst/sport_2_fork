@@ -1,4 +1,4 @@
-using oculus_sport.Models;
+﻿using oculus_sport.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -16,11 +16,15 @@ namespace oculus_sport.Services;
 
 public class BookingService : IBookingService
 {
-    // In-memory list to store bookings while the app is running
+
     private readonly List<Booking> _bookings = new();
+    private readonly List<Booking> _localPendingBookings = new();
+
+    public IReadOnlyList<Booking> LocalPendingBookings => _localPendingBookings.AsReadOnly();
+
     private readonly HttpClient _httpClient;
     private readonly string _projectId = "oculus-sport";
-    private readonly string FacilitiesCollection = "facility";
+    //private readonly string FacilitiesCollection = "facility";
     private readonly FirebaseDataService _firebaseDataService;
 
     public BookingService(HttpClient httpClient, FirebaseDataService firebaseDataService)
@@ -28,14 +32,6 @@ public class BookingService : IBookingService
         _httpClient = httpClient;
         _firebaseDataService = firebaseDataService;
     }
-
-    // Hardcoded prices simulating database lookup (should calculate automatically fetch price from firestore)
-    //private readonly Dictionary<string, decimal> _facilityBasePrices = new()
-    //{
-    //    {"BadmintonCourt", 25.00m}, // RM 25.00
-    //    {"PingPongCourt", 15.00m},  // RM 15.00
-    //    {"BasketballCourt", 30.00m} // RM 30.00
-    //};
 
 
     // -----------------------------------------------------------
@@ -98,130 +94,95 @@ public class BookingService : IBookingService
     //---- fetch available timeslot
     public async Task<IEnumerable<TimeSlot>> GetAvailableTimeSlotsAsync(string facilityId, DateTime date)
     {
-        await Task.Delay(100);
-
         var slots = new List<TimeSlot>();
-        var day = date.DayOfWeek;
-        List<string> validSlots = new();
+        List<string> validSlots = GetValidSlotsByFacility(facilityId, date.DayOfWeek);
 
-        // ----Rules based on facilityId (exact name from Firestore)
-        if (facilityId.Contains("Badminton Court"))
-        {
-            Debug.WriteLine("[BookingService] Badminton rules applied.");
-            if (day == DayOfWeek.Monday || day == DayOfWeek.Thursday || day == DayOfWeek.Friday)
-            {
-                validSlots = new List<string> { "10:00 - 12:00", "12:00 - 14:00", "14:00 - 16:00" };
-            }
-        }
-        else if (facilityId.Contains("Ping-Pong Table"))
-        {
-            Debug.WriteLine("[BookingService] Ping-Pong rules applied.");
-            if (day == DayOfWeek.Monday || day == DayOfWeek.Friday)
-            {
-                validSlots = new List<string> { "10:00 - 12:00", "12:00 - 14:00", "14:00 - 16:00" };
-            }
-        }
-        else if (facilityId.Contains("Basketball Court"))
-        {
-            Debug.WriteLine("[BookingService] Basketball rules applied.");
-            if (day != DayOfWeek.Saturday && day != DayOfWeek.Sunday)
-            {
-                validSlots = new List<string> { "10:00 - 12:00", "12:00 - 14:00", "14:00 - 16:00", "16:00 - 18:00" };
-            }
-        }
+        var existingBookings = await GetBookingsByFacilityAndDateAsync(facilityId, date);
+        var bookedSlots = existingBookings.Select(b => b.TimeSlot)
+                    .Concat(_localPendingBookings
+                            .Where(b => b.FacilityName == facilityId && b.Date.Date == date.Date)
+                            .Select(b => b.TimeSlot))
+                    .ToHashSet();
 
-        // --- Generate slots only for the selected facility
         foreach (var slot in validSlots)
         {
-            bool isBooked = _bookings.Any(b =>
-                b.FacilityName == facilityId &&
-                b.Date.Date == date.Date &&
-                b.TimeSlot == slot);
-
-            Debug.WriteLine($"[BookingService] Slot {facilityId} {slot} booked={isBooked}");
-
             slots.Add(new TimeSlot
             {
                 TimeRange = slot,
-                SlotName = $"{facilityId} � {slot}",
-                IsAvailable = !isBooked
+                SlotName = $"{facilityId} • {slot}",
+                IsAvailable = !bookedSlots.Contains(slot)
             });
+
+            Debug.WriteLine($"[BookingService] Slot {facilityId} {slot} available={!bookedSlots.Contains(slot)}");
         }
 
-        Debug.WriteLine($"[BookingService] Returning {slots.Count} slots.");
         return slots;
     }
 
 
+    private List<string> GetValidSlotsByFacility(string facilityId, DayOfWeek day)
+    {
+        if (facilityId.Contains("Badminton Court") &&
+            (day == DayOfWeek.Monday || day == DayOfWeek.Thursday || day == DayOfWeek.Friday))
+            return new List<string> { "10:00 - 12:00", "12:00 - 14:00", "14:00 - 16:00" };
+
+        if (facilityId.Contains("Ping-Pong Table") &&
+            (day == DayOfWeek.Monday || day == DayOfWeek.Friday))
+            return new List<string> { "10:00 - 12:00", "12:00 - 14:00", "14:00 - 16:00" };
+
+        if (facilityId.Contains("Basketball Court") &&
+            day != DayOfWeek.Saturday && day != DayOfWeek.Sunday)
+            return new List<string> { "10:00 - 12:00", "12:00 - 14:00", "14:00 - 16:00", "16:00 - 18:00" };
+
+        return new List<string>();
+    }
 
     public async Task<bool> IsSlotAvailableAsync(string facilityId, string timeSlot, DateTime date)
     {
-        await Task.Delay(50);
-        return !_bookings.Any(b =>
-            b.FacilityName == facilityId &&
-            b.Date.Date == date.Date &&
-            b.TimeSlot == timeSlot);
-
+        var existingBookings = await GetBookingsByFacilityAndDateAsync(facilityId, date);
+        return !existingBookings.Any(b => b.TimeSlot == timeSlot);
     }
+
     //--- process user and confirm booking
     public async Task<Booking?> ProcessAndConfirmBookingAsync(Booking newBooking)
     {
-        await Task.Delay(500);
-
-        // 1. Check if slot already taken
-        if (_bookings.Any(b =>
-            b.FacilityName == newBooking.FacilityName &&
-            b.Date.Date == newBooking.Date.Date &&
-            b.TimeSlot == newBooking.TimeSlot &&
-            b.SlotNumber == newBooking.SlotNumber))
+        // Check availability
+        if (!await IsSlotAvailableAsync(newBooking.FacilityName, newBooking.TimeSlot, newBooking.Date))
         {
             newBooking.Status = "Rejected";
-            Debug.WriteLine("[Booking Failure] Slot already taken.");
-            return null;
+            Debug.WriteLine("[BookingService] Slot already taken.");
+            return newBooking;
         }
 
-        // 2. Calculate cost
+        // Calculate cost
         newBooking.TotalCost = await CalculateFinalCostAsync(
             newBooking.FacilityName,
             newBooking.TimeSlot,
             newBooking.ContactStudentId);
 
-        // 3. Mark as confirmed
+        // Confirm booking
         newBooking.Status = "Confirmed";
         newBooking.Date = newBooking.Date.Date;
 
-        // 4. Save in-memory
-        _bookings.Add(newBooking);
+        // Add to local pending bookings
+        _localPendingBookings.Add(newBooking);
 
-        // 5. Persist to Firestore
-        try
+        // Persist to Firestore
+        var idToken = await SecureStorage.GetAsync("idToken");
+        if (!string.IsNullOrEmpty(idToken))
         {
-            //--- pass the idToken from CurrentUser or SecureStorage
-            var idToken = await SecureStorage.GetAsync("idToken");
-            if (!string.IsNullOrEmpty(idToken))
+            try
             {
                 var saved = await SaveBookingToFirestoreAsync(newBooking, idToken);
-                if (!saved)
-                {
-                    Debug.WriteLine("[BookingService] Firestore save failed.");
-                }
-                else
-                {
-                    Debug.WriteLine("[BookingService] Booking saved to Firestore.");
-                }
+                Debug.WriteLine(saved ? "[BookingService] Booking saved to Firestore." : "[BookingService] Firestore save failed.");
             }
-            else
+            catch (Exception ex)
             {
-                Debug.WriteLine("[BookingService] No idToken available, skipping Firestore save.");
+                Debug.WriteLine($"[BookingService] Firestore save exception: {ex.Message}");
             }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"[BookingService] Firestore save exception: {ex.Message}");
         }
 
         return newBooking;
-
     }
 
 
@@ -318,7 +279,78 @@ public class BookingService : IBookingService
         return Task.FromResult(false);
     }
 
- 
+    // -------------------------
+    // Firestore Polling Listener (Pseudo Real-Time)
+    // -------------------------
+    public async Task<List<Booking>> GetBookingsByFacilityAndDateAsync(string facilityName, DateTime date)
+    {
+        var idToken = await SecureStorage.GetAsync("idToken");
+        if (string.IsNullOrEmpty(idToken)) return new List<Booking>();
+
+        var url = $"https://firestore.googleapis.com/v1/projects/{_projectId}/databases/(default)/documents/bookings";
+        var req = new HttpRequestMessage(HttpMethod.Get, url);
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", idToken);
+
+        var res = await _httpClient.SendAsync(req);
+        var responseBody = await res.Content.ReadAsStringAsync();
+        var bookings = new List<Booking>();
+
+        if (!res.IsSuccessStatusCode) return bookings;
+
+        var json = JsonDocument.Parse(responseBody);
+        if (!json.RootElement.TryGetProperty("documents", out var docs)) return bookings;
+
+        foreach (var doc in docs.EnumerateArray())
+        {
+            var fields = doc.GetProperty("fields");
+            var booking = new Booking
+            {
+                FacilityName = fields.GetProperty("facilityName").GetProperty("stringValue").GetString(),
+                TimeSlot = fields.GetProperty("timeSlot").GetProperty("stringValue").GetString(),
+                Date = DateTime.Parse(fields.GetProperty("date").GetProperty("timestampValue").GetString(), null, DateTimeStyles.RoundtripKind)
+            };
+
+            if (booking.FacilityName == facilityName && booking.Date.Date == date.Date)
+                bookings.Add(booking);
+        }
+
+        // Merge with local pending bookings
+        bookings.AddRange(_localPendingBookings
+            .Where(b => b.FacilityName == facilityName && b.Date.Date == date.Date));
+
+        return bookings;
+    }
+
+    public async Task ListenToBookingsAsync(string idToken, Action<string> onUpdate)
+    {
+        if (string.IsNullOrEmpty(idToken)) return;
+
+        var url = $"https://firestore.googleapis.com/v1/projects/{_projectId}/databases/(default)/documents/bookings";
+        int pollIntervalSeconds = 5;
+
+        while (true)
+        {
+            try
+            {
+                var req = new HttpRequestMessage(HttpMethod.Get, url);
+                req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", idToken);
+
+                var res = await _httpClient.SendAsync(req);
+                var responseBody = await res.Content.ReadAsStringAsync();
+
+                if (res.IsSuccessStatusCode)
+                    onUpdate(responseBody);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Listen] Exception during polling: {ex.Message}");
+            }
+
+            await Task.Delay(pollIntervalSeconds * 1000);
+        }
+    }
+
+
 
     // --- Frontend Compatibility ---
     public async Task AddBookingAsync(Booking booking)

@@ -58,7 +58,7 @@ public partial class ProfilePageViewModel : BaseViewModel
         {
             await _authService.LogoutAsync();
             // Navigate to Login Page (Absolute Route to clear stack)
-            await Shell.Current.GoToAsync("//Auth/LoginPage");
+            await Shell.Current.GoToAsync("//LoginPage");
 
         }
     }

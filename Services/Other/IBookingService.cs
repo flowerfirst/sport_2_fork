@@ -14,7 +14,9 @@ namespace oculus_sport.Services
         /// </summary>
         Task<Booking?> ProcessAndConfirmBookingAsync(Booking newBooking);
         Task<List<Booking>> GetUserBookingsAsync(string userId);
+        Task ListenToBookingsAsync(string idToken, Action<string> onUpdate);
 
+        IReadOnlyList<Booking> LocalPendingBookings { get; }
 
         /// <summary>
         /// Fetches all time slots for a specific facility on a given date and marks them as available/booked.
