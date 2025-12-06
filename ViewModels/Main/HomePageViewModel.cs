@@ -72,6 +72,8 @@ namespace oculus_sport.ViewModels.Main
                 CurrentUser = user;
             }
         }
+
+
         [RelayCommand]
         public void SelectCategory(SportCategory category)
         {

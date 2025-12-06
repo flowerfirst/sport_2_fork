@@ -21,6 +21,10 @@ public partial class ProfilePageViewModel : BaseViewModel
     private string _email = string.Empty;
 
     [ObservableProperty]
+    private string _phoneNumber = string.Empty;
+
+
+    [ObservableProperty]
     private bool _isDarkMode;
 
     public ProfilePageViewModel(IAuthService authService)
@@ -41,6 +45,7 @@ public partial class ProfilePageViewModel : BaseViewModel
             Name = user.Name;
             StudentId = user.StudentId;
             Email = user.Email;
+            PhoneNumber = user.PhoneNumber;
         }
     }
 

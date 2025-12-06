@@ -55,6 +55,15 @@
                            HeightRequest="50"/>
                 </Border>
 
+                <!-- Phone Number Entry -->
+                <Border Stroke="{StaticResource Gray300}" StrokeThickness="1" StrokeShape="RoundRectangle 10" Padding="15,0">
+                    <Entry Placeholder="Phone Number" 
+                           Text="{Binding PhoneNumber}"
+                           TextColor="{StaticResource Black}"
+                           PlaceholderColor="{StaticResource Gray400}"
+                           Keyboard="Telephone"
+                           HeightRequest="50"/>
+                </Border>
 
                 <!-- Password Entry -->
                 <Border Stroke="{StaticResource Gray300}" StrokeThickness="1" StrokeShape="RoundRectangle 10" Padding="15,0">

@@ -94,6 +94,7 @@ namespace oculus_sport.Services.Auth
                 _currentUser.Name = profile.Name;
                 _currentUser.Email = profile.Email;
                 _currentUser.StudentId = profile.StudentId;
+                _currentUser.PhoneNumber = profile.PhoneNumber;
             }
 
             // -------- sync homepage username with login
@@ -103,7 +104,7 @@ namespace oculus_sport.Services.Auth
 
 
         // ------------- sign up new user
-        public async Task<User> SignUpAsync(string email, string password, string name, string studentId)
+        public async Task<User> SignUpAsync(string email, string password, string name, string studentId, string phoneNumber)
         {
             var url = $"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={ApiKey}";
             var payload = new { email, password, returnSecureToken = true };
@@ -143,7 +144,8 @@ namespace oculus_sport.Services.Auth
                 Id = authResponse.LocalId,
                 Email = authResponse.Email,
                 Name = name,
-                StudentId = studentId
+                StudentId = studentId,
+                PhoneNumber = phoneNumber
             };
 
             //------------------- Save profile info into Firestore (CONNECT TO FIREBASEDATABASERVICE.CS)

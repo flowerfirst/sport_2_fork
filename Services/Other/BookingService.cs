@@ -195,8 +195,11 @@ public class BookingService : IBookingService
         {
             fields = new Dictionary<string, object>
         {
-           { "userId", new { stringValue = booking.UserId } },
+            { "userId", new { stringValue = booking.UserId } },
             { "facilityName", new { stringValue = booking.FacilityName } },
+            
+            // fetch img for history
+            { "imageUrl", new { stringValue = booking.FacilityImage } },
             { "date", new { timestampValue = booking.Date.ToUniversalTime().ToString("o") } },
             { "timeSlot", new { stringValue = booking.TimeSlot } },
             { "slotNumber", new { integerValue = booking.SlotNumber } },
@@ -248,6 +251,7 @@ public class BookingService : IBookingService
                     Id = doc.GetProperty("name").GetString()?.Split('/').Last(),
                     UserId = fields.GetProperty("userId").GetProperty("stringValue").GetString(),
                     FacilityName = fields.GetProperty("facilityName").GetProperty("stringValue").GetString(),
+                    FacilityImage = fields.GetProperty("imageUrl").GetProperty("stringValue").GetString(), // ✅ new line
                     Date = DateTime.Parse(fields.GetProperty("date").GetProperty("timestampValue").GetString(), null, DateTimeStyles.RoundtripKind),
                     TimeSlot = fields.GetProperty("timeSlot").GetProperty("stringValue").GetString(),
                     SlotNumber = int.Parse(fields.GetProperty("slotNumber").GetProperty("integerValue").GetString()),

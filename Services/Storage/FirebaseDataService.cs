@@ -10,6 +10,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Net;
+using System.Globalization;
 
 namespace oculus_sport.Services.Storage
 {
@@ -68,13 +69,15 @@ namespace oculus_sport.Services.Storage
             var name = GetStringField(fields, "name");
             var email = GetStringField(fields, "email");
             var studentId = GetStringField(fields, "studentId");
+            var phoneNumber = GetStringField(fields, "phoneNumber");
 
             return new User
             {
                 Id = uid,
                 Name = name,
                 Email = email,
-                StudentId = studentId
+                StudentId = studentId,
+                PhoneNumber = phoneNumber
             };
         }
 
@@ -89,7 +92,8 @@ namespace oculus_sport.Services.Storage
                 {
                     name = new { stringValue = user.Name },
                     email = new { stringValue = user.Email },
-                    studentId = new { stringValue = user.StudentId }
+                    studentId = new { stringValue = user.StudentId },
+                    phoneNumber = new {stringValue = user.PhoneNumber}
                 }
             };
 

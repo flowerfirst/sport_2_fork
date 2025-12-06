@@ -29,6 +29,10 @@ namespace oculus_sport.ViewModels.Auth
         [ObservableProperty]
         private string _studentId = string.Empty;
 
+        [ObservableProperty]
+        private string _phoneNumber = string.Empty;
+
+
         public SignUpPageViewModel(IAuthService authService)
         {
             _authService = authService;
@@ -50,7 +54,9 @@ namespace oculus_sport.ViewModels.Auth
                 string.IsNullOrWhiteSpace(Password) ||
                 string.IsNullOrWhiteSpace(ConfirmPassword) ||
                 string.IsNullOrWhiteSpace(Name) ||
-                string.IsNullOrWhiteSpace(StudentId))
+                string.IsNullOrWhiteSpace(StudentId) ||
+                string.IsNullOrWhiteSpace(PhoneNumber)
+                )
             {
                 Debug.WriteLine("[SignUp] Validation failed: missing required fields.");
                 await Shell.Current.DisplayAlert("Error", "Please fill in all fields (Email, Password, Name, ID).", "OK");
@@ -80,11 +86,11 @@ namespace oculus_sport.ViewModels.Auth
                 Debug.WriteLine($"[SignUp] Starting signup for Email={Email}, Name={Name}, StudentId={StudentId}");
 
                 // Call Auth Service with all required backend parameters
-                var newUser = await _authService.SignUpAsync(Email, Password, Name, StudentId);
+                var newUser = await _authService.SignUpAsync(Email, Password, Name, StudentId, PhoneNumber);
 
                 if (newUser != null)
                 {
-                    Debug.WriteLine($"[SignUp] Signup successful. UserId={newUser.Id}, Email={newUser.Email}");
+                    Debug.WriteLine($"[SignUp] Signup successful. UserId={newUser.Id}, Email={newUser.Email}, Phone={PhoneNumber}");
 
                     //// Save token for persistence
                     //await SecureStorage.SetAsync("idToken", newUser.IdToken);

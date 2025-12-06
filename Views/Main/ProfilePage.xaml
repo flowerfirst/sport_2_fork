@@ -37,7 +37,7 @@
 
                         <VerticalStackLayout>
                             <Label Text="Phone" FontSize="12" TextColor="Gray"/>
-                            <Label Text="+60 12-345 6789" FontSize="16" TextColor="{StaticResource Black}"/>
+                            <Label Text="{Binding PhoneNumber}" FontSize="16" TextColor="{StaticResource Black}"/>
                         </VerticalStackLayout>
                     </VerticalStackLayout>
                 </Border>
