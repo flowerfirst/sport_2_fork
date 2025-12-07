@@ -2,14 +2,19 @@ using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using oculus_sport.Models;
+using oculus_sport.Services.Storage;
+using oculus_sport.Services.Auth;
 using oculus_sport.ViewModels.Base;
 
 namespace oculus_sport.ViewModels.Main
 {
     public partial class HomePageViewModel : BaseViewModel
     {
+        private readonly FirebaseDataService _dataService;
+        private readonly IAuthService _authService; // 2. Add Auth Service field
+
         [ObservableProperty]
-        private string _userName = "Tony";
+        private string _userName = "Guest";
 
         [ObservableProperty]
         private ObservableCollection<SportCategory> _categories = new();
@@ -19,28 +24,67 @@ namespace oculus_sport.ViewModels.Main
 
         private List<Facility> _allFacilities = new();
 
-        public HomePageViewModel()
+        // 3. Update Constructor to accept IAuthService
+        public HomePageViewModel(FirebaseDataService dataService, IAuthService authService)
         {
+            _dataService = dataService;
+            _authService = authService; // Assign it
             Title = "Home";
-            LoadData();
+
+            // 4. Get the real user name
+            var currentUser = _authService.GetCurrentUser();
+            if (currentUser != null && !string.IsNullOrEmpty(currentUser.Name))
+            {
+                UserName = currentUser.Name;
+            }
+
+            LoadCategories();
+            Task.Run(LoadDataAsync);
         }
 
-        private void LoadData()
+        private void LoadCategories()
         {
             Categories.Add(new SportCategory { Name = "Badminton", IsSelected = true });
             Categories.Add(new SportCategory { Name = "Ping-Pong" });
             Categories.Add(new SportCategory { Name = "Basketball" });
+        }
 
-            _allFacilities.Clear();
-            for (int i = 1; i <= 3; i++)
-                _allFacilities.Add(new Facility { Name = $"Badminton Court {i}", Location = "UTS Indoor Hall", Price = "Free", Rating = 4.5, ImageUrl = "court_badminton.png" });
+        private async Task LoadDataAsync()
+        {
+            IsBusy = true;
 
-            for (int i = 1; i <= 4; i++)
-                _allFacilities.Add(new Facility { Name = $"Ping-Pong Table {i}", Location = "Student Center L2", Price = "Free", Rating = 4.8, ImageUrl = "court_pingpong.png" });
+            try
+            {
+                var fetchedFacilities = await _dataService.GetFacilitiesFromFirestoreAsync();
+                _allFacilities.Clear();
 
-            _allFacilities.Add(new Facility { Name = "Basketball Court 1", Location = "Outdoor Complex", Price = "Free", Rating = 4.2, ImageUrl = "court_basketball.png" });
+                foreach (var facility in fetchedFacilities)
+                {
+                    if (facility.Name.Contains("Badminton"))
+                        facility.LocationMapUrl = "recreation_center.png";
+                    else if (facility.Name.Contains("Ping-Pong") || facility.Name.Contains("PingPong"))
+                        facility.LocationMapUrl = "recreational_center.png";
+                    else if (facility.Name.Contains("Basketball"))
+                        facility.LocationMapUrl = "outdoor_court.png";
+                    else
+                        facility.LocationMapUrl = "recreation_center.png";
 
-            FilterFacilities("Badminton");
+                    _allFacilities.Add(facility);
+                }
+
+                MainThread.BeginInvokeOnMainThread(() =>
+                {
+                    FilterFacilities("Badminton");
+                });
+            }
+            catch (Exception ex)
+            {
+                await Shell.Current.DisplayAlert("Error", $"Could not load facilities: {ex.Message}", "OK");
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
         [RelayCommand]
@@ -55,8 +99,22 @@ namespace oculus_sport.ViewModels.Main
         private void FilterFacilities(string categoryName)
         {
             Facilities.Clear();
-            var filtered = _allFacilities.Where(f => f.Name.Contains(categoryName, StringComparison.OrdinalIgnoreCase));
-            foreach (var facility in filtered) Facilities.Add(facility);
+
+            // 1. Define the search term. 
+            // If the category is "Ping-Pong", just search for "Ping" to be safe.
+            string searchTerm = categoryName;
+            if (categoryName == "Ping-Pong")
+            {
+                searchTerm = "Ping";
+            }
+
+            // 2. Perform the filter with the safe term
+            var filtered = _allFacilities.Where(f => f.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+
+            foreach (var facility in filtered)
+            {
+                Facilities.Add(facility);
+            }
         }
 
         [RelayCommand]

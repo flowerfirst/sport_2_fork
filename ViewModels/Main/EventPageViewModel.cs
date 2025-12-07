@@ -27,7 +27,7 @@ public partial class EventPageViewModel : BaseViewModel
                 Description = "Join the biggest campus tournament of the year! Registration ends soon.",
                 DateDisplay = "Nov 12",
                 IsNew = true,
-                ImageUrl = "badminton_court.webp"
+                ImageUrl = "badminton_court.png"
             },
             new SportEvent
             {
@@ -35,7 +35,7 @@ public partial class EventPageViewModel : BaseViewModel
                 Description = "Tennis Court A will be closed for resurfacing this weekend.",
                 DateDisplay = "2 days ago",
                 IsNew = false,
-                ImageUrl = "badminton_court.webp"
+                ImageUrl = "tennis.jpg"
             },
             new SportEvent
             {
@@ -43,7 +43,7 @@ public partial class EventPageViewModel : BaseViewModel
                 Description = "Free coaching session for beginners. Equipment provided.",
                 DateDisplay = "Oct 30",
                 IsNew = false,
-                ImageUrl = "badminton_court.webp"
+                ImageUrl = "pickleball.jpg"
             }
         };
     }
