@@ -8,4 +8,5 @@ public class Facility
     public string Price { get; set; } = string.Empty;
     public double Rating { get; set; }
     public bool IsAvailable { get; set; }
+    public string LocationMapUrl { get; set; } = string.Empty;
 }
