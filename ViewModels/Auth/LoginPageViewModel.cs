@@ -29,10 +29,9 @@ namespace oculus_sport.ViewModels.Auth
         {
             if (IsBusy) return;
 
-            //------------- Basic Validation
             if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Password))
             {
-                await Application.Current.MainPage.DisplayAlert("Error", "Please enter both Email and Password.", "OK");
+                await Shell.Current.DisplayAlert("Error", "Please enter both Email and Password.", "OK");
                 return;
             }
 
@@ -61,7 +60,7 @@ namespace oculus_sport.ViewModels.Auth
             }
             catch (Exception ex)
             {
-                await Application.Current.MainPage.DisplayAlert("Error", $"Login failed: {ex.Message}", "OK");
+                await Shell.Current.DisplayAlert("Error", $"Login failed: {ex.Message}", "OK");
             }
             finally
             {
@@ -69,7 +68,6 @@ namespace oculus_sport.ViewModels.Auth
             }
 
         }
-
 
         [RelayCommand]
         async Task GoToSignUp()

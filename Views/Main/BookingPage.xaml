@@ -26,6 +26,18 @@
                     <Border Stroke="{StaticResource Primary}" StrokeThickness="1" BackgroundColor="White" Padding="10" StrokeShape="RoundRectangle 5">
                         <DatePicker Date="{Binding SelectedDate}" MinimumDate="{Binding SelectedDate}" Format="D" TextColor="{StaticResource Black}"/>
                     </Border>
+                    <Border StrokeShape="RoundRectangle 10"
+                            StrokeThickness="1"
+                            Stroke="{StaticResource Gray300}"
+                            HeightRequest="220"
+                            Padding="0"
+                            BackgroundColor="#F5F5F5">
+
+                        <Image Source="{Binding Facility.LocationMapUrl}"
+                               Aspect="AspectFill"
+                               HorizontalOptions="Fill"
+                               VerticalOptions="Fill" />
+                    </Border>
                 </VerticalStackLayout>
 
                 <VerticalStackLayout Spacing="10">

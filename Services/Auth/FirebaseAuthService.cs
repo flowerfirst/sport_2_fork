@@ -23,6 +23,7 @@ namespace oculus_sport.Services.Auth
         private readonly FirebaseDataService _dataService;
         private const string ApiKey = "AIzaSyCYLKCEnZv33cviHuNRy4Go8IZVWcu-0aI";
         private User? _currentUser;
+        private readonly FirebaseDataService _dataService;
 
 
         public FirebaseAuthService(HttpClient httpClient, FirebaseDataService dataService)
@@ -45,12 +46,25 @@ namespace oculus_sport.Services.Auth
             public string Message { get; set; } = string.Empty;
         }
 
-
-        // --------- login user using email and passw
-        public async Task<User> LoginAsync(string email, string password)
+        // LOGIN
+        public async Task<User> LoginAsync(string input, string password)
         {
+            string emailToLogin = input;
+
+            // 1. Check if input is a Username (missing '@')
+            if (!input.Contains("@"))
+            {
+                var foundEmail = await _dataService.GetEmailFromUsernameAsync(input);
+                if (string.IsNullOrEmpty(foundEmail))
+                {
+                    throw new Exception("Username not found.");
+                }
+                emailToLogin = foundEmail;
+            }
+
+            // 2. Standard Login
             var url = $"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={ApiKey}";
-            var payload = new { email, password, returnSecureToken = true };
+            var payload = new { email = emailToLogin, password, returnSecureToken = true };
             var json = JsonSerializer.Serialize(payload);
 
             var response = await _httpClient.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"));
@@ -63,8 +77,7 @@ namespace oculus_sport.Services.Auth
 
             if (!response.IsSuccessStatusCode || !string.IsNullOrEmpty(authResponse?.Error?.Message))
             {
-                var message = authResponse?.Error?.Message ?? "Unknown error";
-                throw new Exception($"Login failed: {message}");
+                throw new Exception($"Login failed: {authResponse?.Error?.Message ?? "Unknown error"}");
             }
 
             if (string.IsNullOrWhiteSpace(authResponse?.IdToken))
@@ -102,6 +115,8 @@ namespace oculus_sport.Services.Auth
             return _currentUser!;
         }
 
+            return _currentUser;
+        }
 
         // ------------- sign up new user
         public async Task<User> SignUpAsync(string email, string password, string name, string studentId, string phoneNumber)
@@ -113,9 +128,6 @@ namespace oculus_sport.Services.Auth
             var response = await _httpClient.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"));
             var result = await response.Content.ReadAsStringAsync();
 
-            Console.WriteLine("Firebase signup raw response:");
-            Console.WriteLine(result);
-
             var authResponse = JsonSerializer.Deserialize<FirebaseAuthResponse>(
                 result,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
@@ -123,21 +135,8 @@ namespace oculus_sport.Services.Auth
 
             if (!response.IsSuccessStatusCode || !string.IsNullOrEmpty(authResponse?.Error?.Message))
             {
-                var message = authResponse?.Error?.Message ?? "Unknown error";
-
-                Console.WriteLine($"Firebase signup error: {message}");
-
-                throw new Exception(message switch
-                {
-                    "EMAIL_EXISTS" => "This email is already registered.",
-                    "INVALID_EMAIL" => "Invalid email format.",
-                    string s when s.Contains("WEAK_PASSWORD") => "Password must be at least 6 characters.",
-                    _ => $"Signup failed: {message}"
-                });
+                throw new Exception($"Signup failed: {authResponse?.Error?.Message}");
             }
-
-            if (string.IsNullOrWhiteSpace(authResponse?.IdToken))
-                throw new Exception("Firebase did not return a valid idToken.");
 
             _currentUser = new User
             {
@@ -249,7 +248,6 @@ namespace oculus_sport.Services.Auth
             return expDate < DateTimeOffset.UtcNow;
         }
 
-        // ------------------Log out user, clear stored tokens
         public async Task LogoutAsync()
         {
             await Task.Delay(200);

@@ -2,7 +2,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using oculus_sport.Services.Auth;
 using oculus_sport.ViewModels.Base;
-//using static System.Net.Mime.MediaTypeNames;
 using Microsoft.Maui.Controls;
 
 namespace oculus_sport.ViewModels.Main;
@@ -11,6 +10,7 @@ public partial class ProfilePageViewModel : BaseViewModel
 {
     private readonly IAuthService _authService;
 
+    // Remove the default values
     [ObservableProperty]
     private string _name = string.Empty;
 
@@ -32,8 +32,29 @@ public partial class ProfilePageViewModel : BaseViewModel
         _authService = authService;
         Title = "My Profile";
 
-        // Check current theme
         IsDarkMode = Application.Current.UserAppTheme == AppTheme.Dark;
+
+        // LOAD REAL USER DATA
+        LoadUserData();
+    }
+
+    private void LoadUserData()
+    {
+        // Get the user from the service
+        var currentUser = _authService.GetCurrentUser();
+
+        if (currentUser != null)
+        {
+            Name = currentUser.Name;
+            StudentId = currentUser.StudentId;
+            Email = currentUser.Email;
+        }
+        else
+        {
+            // Fallback if something went wrong
+            Name = "Guest";
+            Email = "Not Logged In";
+        }
     }
 
     // --- load user info

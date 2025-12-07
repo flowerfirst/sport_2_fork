@@ -11,10 +11,12 @@ namespace oculus_sport.ViewModels.Auth
     public partial class SignUpPageViewModel : BaseViewModel
     {
         private readonly IAuthService _authService;
-        //private readonly FirestoreService _firestoreService;
 
         [ObservableProperty]
         private string _email = string.Empty;
+
+        [ObservableProperty]
+        private string _username = string.Empty;
 
         [ObservableProperty]
         private string _password = string.Empty;
@@ -22,7 +24,6 @@ namespace oculus_sport.ViewModels.Auth
         [ObservableProperty]
         private string _confirmPassword = string.Empty;
 
-        // Added properties required for Backend Signup
         [ObservableProperty]
         private string _name = string.Empty;
 
@@ -36,7 +37,6 @@ namespace oculus_sport.ViewModels.Auth
         public SignUpPageViewModel(IAuthService authService)
         {
             _authService = authService;
-            //_firestoreService = firestoreService;
             Title = "Sign Up";
         }
 
@@ -131,13 +131,5 @@ namespace oculus_sport.ViewModels.Auth
             //await Shell.Current.GoToAsync("..");
 
         }
-
-        //-------------comment first to test signup and login
-        //private bool IsStrongPassword(string password)
-        //{
-        //    // Regex: At least 8 chars, 1 Upper, 1 Special char
-        //    var regex = new Regex(@"^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':""\\|,.<>\/?]).{8,}$");
-        //    return regex.IsMatch(password);
-        //}
     }
 }

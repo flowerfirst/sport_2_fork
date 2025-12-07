@@ -104,8 +104,7 @@ namespace oculus_sport.Services.Storage
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
 
-            request.Headers.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", idToken);
 
             var response = await _httpClient.SendAsync(request);
             var result = await response.Content.ReadAsStringAsync();
