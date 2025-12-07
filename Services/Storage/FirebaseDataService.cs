@@ -1,13 +1,8 @@
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Linq;
-using oculus_sport.Models;
-using System.Diagnostics;
-using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
+using System.Net.Http.Headers;
+using oculus_sport.Models;
+using Microsoft.Maui.Storage;
 
 namespace oculus_sport.Services.Storage
 {
@@ -16,7 +11,9 @@ namespace oculus_sport.Services.Storage
         private readonly HttpClient _httpClient = new HttpClient();
         private readonly string _projectId = "oculus-sport";
 
-        // ----------- save user sign up info into firestore using REST API
+        // --------------------------------------------------------------------
+        // 1. SAVE USER (Used during Sign Up)
+        // --------------------------------------------------------------------
         public async Task SaveUserToFirestoreAsync(User user, string idToken)
         {
             var url = $"https://firestore.googleapis.com/v1/projects/{_projectId}/databases/(default)/documents/users/{user.Id}";
@@ -27,7 +24,9 @@ namespace oculus_sport.Services.Storage
                 {
                     name = new { stringValue = user.Name },
                     email = new { stringValue = user.Email },
-                    studentId = new { stringValue = user.StudentId }
+                    studentId = new { stringValue = user.StudentId },
+                    // SAVE USERNAME
+                    username = new { stringValue = user.Username }
                 }
             };
 
@@ -38,8 +37,7 @@ namespace oculus_sport.Services.Storage
                 Content = new StringContent(json, Encoding.UTF8, "application/json")
             };
 
-            request.Headers.Authorization =
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", idToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", idToken);
 
             var response = await _httpClient.SendAsync(request);
             var result = await response.Content.ReadAsStringAsync();
@@ -47,164 +45,169 @@ namespace oculus_sport.Services.Storage
             if (!response.IsSuccessStatusCode)
                 throw new Exception($"Firestore save failed: {result}");
         }
+
+        // --------------------------------------------------------------------
+        // 2. FETCH FULL PROFILE (Fixes "Guest" Issue)
+        // --------------------------------------------------------------------
+        public async Task<User?> GetUserProfileAsync(string userId)
+        {
+            var url = $"https://firestore.googleapis.com/v1/projects/{_projectId}/databases/(default)/documents/users/{userId}";
+
+            var token = await SecureStorage.GetAsync("idToken");
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            if (!string.IsNullOrEmpty(token)) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var response = await _httpClient.SendAsync(request);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var result = await response.Content.ReadAsStringAsync();
+            using (JsonDocument doc = JsonDocument.Parse(result))
+            {
+                if (doc.RootElement.TryGetProperty("fields", out JsonElement fields))
+                {
+                    var user = new User { Id = userId };
+
+                    if (fields.TryGetProperty("name", out JsonElement n))
+                        user.Name = n.GetProperty("stringValue").GetString() ?? "";
+
+                    if (fields.TryGetProperty("email", out JsonElement e))
+                        user.Email = e.GetProperty("stringValue").GetString() ?? "";
+
+                    if (fields.TryGetProperty("username", out JsonElement u))
+                        user.Username = u.GetProperty("stringValue").GetString() ?? "";
+
+                    if (fields.TryGetProperty("studentId", out JsonElement s))
+                        user.StudentId = s.GetProperty("stringValue").GetString() ?? "";
+
+                    return user;
+                }
+            }
+            return null;
+        }
+
+        // --------------------------------------------------------------------
+        // 3. LOOKUP EMAIL BY USERNAME (For Login)
+        // --------------------------------------------------------------------
+        public async Task<string?> GetEmailFromUsernameAsync(string username)
+        {
+            var url = $"https://firestore.googleapis.com/v1/projects/{_projectId}/databases/(default)/documents:runQuery";
+
+            var payload = new
+            {
+                structuredQuery = new
+                {
+                    from = new[] { new { collectionId = "users" } },
+                    where = new
+                    {
+                        fieldFilter = new
+                        {
+                            field = new { fieldPath = "username" },
+                            op = "EQUAL",
+                            value = new { stringValue = username }
+                        }
+                    },
+                    limit = 1
+                }
+            };
+
+            var json = JsonSerializer.Serialize(payload);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            // We usually need auth for runQuery, but if open rules, might work without. 
+            // Better to attach token if available, but usually used during login (no token yet).
+            // This relies on Firestore Rules allowing public read or restricted read.
+
+            var response = await _httpClient.PostAsync(url, content);
+            if (!response.IsSuccessStatusCode) return null;
+
+            var result = await response.Content.ReadAsStringAsync();
+
+            using (JsonDocument doc = JsonDocument.Parse(result))
+            {
+                foreach (var element in doc.RootElement.EnumerateArray())
+                {
+                    if (element.TryGetProperty("document", out JsonElement document))
+                    {
+                        if (document.TryGetProperty("fields", out JsonElement fields))
+                        {
+                            if (fields.TryGetProperty("email", out JsonElement emailObj))
+                            {
+                                return emailObj.GetProperty("stringValue").GetString();
+                            }
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+        // --------------------------------------------------------------------
+        // 4. GET FACILITIES
+        // --------------------------------------------------------------------
+        public async Task<List<Facility>> GetFacilitiesFromFirestoreAsync()
+        {
+            var url = $"https://firestore.googleapis.com/v1/projects/{_projectId}/databases/(default)/documents/facility";
+
+            var token = await SecureStorage.GetAsync("idToken");
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            if (!string.IsNullOrEmpty(token))
+            {
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+
+            var response = await _httpClient.SendAsync(request);
+            var result = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"[Firestore Error] {response.StatusCode}: {result}");
+                return new List<Facility>();
+            }
+
+            var facilities = new List<Facility>();
+            using (JsonDocument doc = JsonDocument.Parse(result))
+            {
+                if (doc.RootElement.TryGetProperty("documents", out JsonElement documents))
+                {
+                    foreach (var docElement in documents.EnumerateArray())
+                    {
+                        if (docElement.TryGetProperty("fields", out JsonElement fields))
+                        {
+                            var facility = new Facility();
+
+                            if (fields.TryGetProperty("facilityName", out JsonElement nameObj))
+                                facility.Name = nameObj.GetProperty("stringValue").GetString() ?? "";
+
+                            if (fields.TryGetProperty("location", out JsonElement locObj))
+                                facility.Location = locObj.GetProperty("stringValue").GetString() ?? "";
+
+                            if (fields.TryGetProperty("imageUrl", out JsonElement imgObj))
+                                facility.ImageUrl = imgObj.GetProperty("stringValue").GetString() ?? "dotnet_bot.png";
+
+                            if (fields.TryGetProperty("price", out JsonElement priceObj))
+                            {
+                                if (priceObj.TryGetProperty("integerValue", out JsonElement iVal))
+                                    facility.Price = $"RM {iVal.GetString()}";
+                                else if (priceObj.TryGetProperty("doubleValue", out JsonElement dVal))
+                                    facility.Price = $"RM {dVal.GetDouble()}";
+                                else if (priceObj.TryGetProperty("stringValue", out JsonElement sVal))
+                                    facility.Price = $"RM {sVal.GetString()}";
+                            }
+
+                            if (fields.TryGetProperty("rating", out JsonElement ratingObj))
+                            {
+                                if (ratingObj.TryGetProperty("doubleValue", out JsonElement dVal))
+                                    facility.Rating = dVal.GetDouble();
+                                else if (ratingObj.TryGetProperty("integerValue", out JsonElement iVal))
+                                    facility.Rating = double.Parse(iVal.GetString() ?? "0");
+                            }
+
+                            facilities.Add(facility);
+                        }
+                    }
+                }
+            }
+            return facilities;
+        }
     }
-
-    // IDatabaseService implementation using Firestore
-    //public class FirebaseDataService : IDatabaseService
-    //{
-    //    // Backing field left null until first use
-    //    private IFirebaseFirestore? _firestoreClient;
-
-    //    // Lazy accessor — resolves the plugin at first use (avoids DI-time exception).
-    //    private IFirebaseFirestore FirestoreClient
-    //    {
-    //        get
-    //        {
-    //            if (_firestoreClient != null)
-    //                return _firestoreClient;
-
-    //            // Try to resolve the platform implementation.
-    //            _firestoreClient = CrossFirebaseFirestore.Current;
-
-    //            if (_firestoreClient == null)
-    //                throw new InvalidOperationException("Firestore plugin not available on this platform.");
-
-    //            return _firestoreClient;
-    //        }
-    //    }
-
-        //public FirebaseDataService()
-        //{
-        //    // Do not access CrossFirebaseFirestore.Current here to avoid NotImplementedException
-        //    // during DI/container construction. Access happens lazily via FirestoreClient.
-        //}
-
-        //private static string GetCollectionName<T>() where T : class
-        //{
-        //    return $"{typeof(T).Name.ToLower()}s";
-        //}
-
-        //public async Task<T?> GetItemAsync<T>(string id) where T : class
-        //{
-        //    try
-        //    {
-        //        var collectionName = GetCollectionName<T>();
-
-        //        var snapshot = await FirestoreClient
-        //            .GetCollection(collectionName)
-        //            .GetDocument(id)
-        //            .GetDocumentSnapshotAsync<T>();
-
-        //        if (snapshot.Data != null)
-        //            return snapshot.Data;
-
-        //        return null;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Debug.WriteLine($"Firestore GetItemAsync error: {ex.Message}");
-        //        return null;
-        //    }
-        //}
-
-        //public async Task<IEnumerable<T>> GetItemsAsync<T>() where T : class
-        //{
-        //    try
-        //    {
-        //        var collectionName = GetCollectionName<T>();
-
-        //        var querySnapshot = await FirestoreClient
-        //            .GetCollection(collectionName)
-        //            .GetDocumentsAsync<T>();
-
-        //        return querySnapshot.Documents
-        //            .Where(d => d.Data != null)
-        //            .Select(d => d.Data)!;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Debug.WriteLine($"Firestore GetItemsAsync error: {ex.Message}");
-        //        return Enumerable.Empty<T>();
-        //    }
-        //}
-
-        //public async Task<bool> AddItemAsync<T>(T item) where T : class
-        //{
-        //    try
-        //    {
-        //        var collectionName = GetCollectionName<T>();
-        //        await FirestoreClient
-        //            .GetCollection(collectionName)
-        //            .AddDocumentAsync(item);
-
-        //        return true;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Debug.WriteLine($"[Firestore Error] AddItemAsync failed for {typeof(T).Name}: {ex.Message}");
-        //        return false;
-        //    }
-        //}
-
-        //public async Task<bool> UpdateItemAsync<T>(T item) where T : class
-        //{
-        //    var idProperty = typeof(T).GetProperty("Id");
-        //    string id = idProperty?.GetValue(item)?.ToString() ?? string.Empty;
-
-        //    if (string.IsNullOrEmpty(id))
-        //    {
-        //        Debug.WriteLine($"[Firestore Error] Cannot update {typeof(T).Name}: 'Id' property is required.");
-        //        return false;
-        //    }
-
-        //    try
-        //    {
-        //        var collectionName = GetCollectionName<T>();
-
-        //        await FirestoreClient
-        //            .GetCollection(collectionName)
-        //            .GetDocument(id)
-        //            .SetDataAsync(item);
-
-        //        return true;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Debug.WriteLine($"[Firestore Error] UpdateItemAsync failed for {typeof(T).Name} ID {id}: {ex.Message}");
-        //        return false;
-        //    }
-        //}
-
-        //public async Task<bool> DeleteItemAsync<T>(string id) where T : class
-        //{
-        //    try
-        //    {
-        //        var collectionName = GetCollectionName<T>();
-        //        await FirestoreClient
-        //            .GetCollection(collectionName)
-        //            .GetDocument(id)
-        //            .DeleteDocumentAsync();
-
-        //        return true;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Debug.WriteLine($"[Firestore Error] DeleteItemAsync failed for {typeof(T).Name} ID {id}: {ex.Message}");
-        //        return false;
-        //    }
-        //}
-
-        //public async Task<User?> GetUserByFirebaseIdAsync(string userId)
-        //{
-        //    return await GetItemAsync<User>(userId);
-        //}
-
-        //public async Task SaveUserProfileAsync(User user)
-        //{
-        //    if (string.IsNullOrEmpty(user.Id))
-        //        throw new ArgumentException("User ID (Firebase UID) must be set before saving the profile.");
-
-        //    await UpdateItemAsync(user);
-        //}
-    //}
 }

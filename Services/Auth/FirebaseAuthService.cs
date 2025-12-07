@@ -13,10 +13,12 @@ namespace oculus_sport.Services.Auth
         private readonly HttpClient _httpClient;
         private const string ApiKey = "AIzaSyCYLKCEnZv33cviHuNRy4Go8IZVWcu-0aI";
         private User? _currentUser;
+        private readonly FirebaseDataService _dataService;
 
         public FirebaseAuthService(HttpClient httpClient)
         {
             _httpClient = httpClient;
+            _dataService = new FirebaseDataService();
         }
 
         private class FirebaseAuthResponse
@@ -33,19 +35,29 @@ namespace oculus_sport.Services.Auth
             public string Message { get; set; } = string.Empty;
         }
 
-
-        // --------- login user using email and passw
-        public async Task<User> LoginAsync(string email, string password)
+        // LOGIN
+        public async Task<User> LoginAsync(string input, string password)
         {
+            string emailToLogin = input;
+
+            // 1. Check if input is a Username (missing '@')
+            if (!input.Contains("@"))
+            {
+                var foundEmail = await _dataService.GetEmailFromUsernameAsync(input);
+                if (string.IsNullOrEmpty(foundEmail))
+                {
+                    throw new Exception("Username not found.");
+                }
+                emailToLogin = foundEmail;
+            }
+
+            // 2. Standard Login
             var url = $"https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={ApiKey}";
-            var payload = new { email, password, returnSecureToken = true };
+            var payload = new { email = emailToLogin, password, returnSecureToken = true };
             var json = JsonSerializer.Serialize(payload);
 
             var response = await _httpClient.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"));
             var result = await response.Content.ReadAsStringAsync();
-
-            Console.WriteLine("Firebase raw response:");
-            Console.WriteLine(result);
 
             var authResponse = JsonSerializer.Deserialize<FirebaseAuthResponse>(
                 result,
@@ -54,30 +66,30 @@ namespace oculus_sport.Services.Auth
 
             if (!response.IsSuccessStatusCode || !string.IsNullOrEmpty(authResponse?.Error?.Message))
             {
-                var message = authResponse?.Error?.Message ?? "Unknown error";
-                throw new Exception($"Login failed: {message}");
+                throw new Exception($"Login failed: {authResponse?.Error?.Message ?? "Unknown error"}");
             }
 
-            if (string.IsNullOrWhiteSpace(authResponse?.IdToken))
-                throw new Exception("Firebase did not return a valid idToken.");
-
-            _currentUser = new User
-            {
-                Id = authResponse.LocalId,
-                Email = authResponse.Email
-            };
-
+            // Save tokens
             await SecureStorage.SetAsync("idToken", authResponse.IdToken);
             await SecureStorage.SetAsync("refreshToken", authResponse.RefreshToken);
 
-            Console.WriteLine($"Login successful for user: {authResponse.Email} (ID: {authResponse.LocalId})");
+            // 3. FETCH FULL PROFILE
+            var fullProfile = await _dataService.GetUserProfileAsync(authResponse.LocalId);
 
-            return _currentUser!;
+            if (fullProfile != null)
+            {
+                _currentUser = fullProfile;
+            }
+            else
+            {
+                _currentUser = new User { Id = authResponse.LocalId, Email = authResponse.Email, Name = "Guest" };
+            }
+
+            return _currentUser;
         }
 
-
-        // ------------- sign up new user
-        public async Task<User> SignUpAsync(string email, string password, string name, string studentId)
+        // SIGN UP
+        public async Task<User> SignUpAsync(string email, string password, string name, string studentId, string username)
         {
             var url = $"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={ApiKey}";
             var payload = new { email, password, returnSecureToken = true };
@@ -86,9 +98,6 @@ namespace oculus_sport.Services.Auth
             var response = await _httpClient.PostAsync(url, new StringContent(json, Encoding.UTF8, "application/json"));
             var result = await response.Content.ReadAsStringAsync();
 
-            Console.WriteLine("Firebase signup raw response:");
-            Console.WriteLine(result);
-
             var authResponse = JsonSerializer.Deserialize<FirebaseAuthResponse>(
                 result,
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true }
@@ -96,33 +105,20 @@ namespace oculus_sport.Services.Auth
 
             if (!response.IsSuccessStatusCode || !string.IsNullOrEmpty(authResponse?.Error?.Message))
             {
-                var message = authResponse?.Error?.Message ?? "Unknown error";
-
-                Console.WriteLine($"Firebase signup error: {message}");
-
-                throw new Exception(message switch
-                {
-                    "EMAIL_EXISTS" => "This email is already registered.",
-                    "INVALID_EMAIL" => "Invalid email format.",
-                    string s when s.Contains("WEAK_PASSWORD") => "Password must be at least 6 characters.",
-                    _ => $"Signup failed: {message}"
-                });
+                throw new Exception($"Signup failed: {authResponse?.Error?.Message}");
             }
-
-            if (string.IsNullOrWhiteSpace(authResponse?.IdToken))
-                throw new Exception("Firebase did not return a valid idToken.");
 
             _currentUser = new User
             {
                 Id = authResponse.LocalId,
                 Email = authResponse.Email,
                 Name = name,
-                StudentId = studentId
+                StudentId = studentId,
+                Username = username // Set Username
             };
 
-            //------------------- Save profile info into Firestore (CONNECT TO FIREBASEDATABASERVICE.CS)
-            var dataService = new FirebaseDataService();
-            await dataService.SaveUserToFirestoreAsync(_currentUser, authResponse.IdToken);
+            // Save to Firestore
+            await _dataService.SaveUserToFirestoreAsync(_currentUser, authResponse.IdToken);
 
             await SecureStorage.SetAsync("idToken", authResponse.IdToken);
             await SecureStorage.SetAsync("refreshToken", authResponse.RefreshToken);
@@ -130,8 +126,6 @@ namespace oculus_sport.Services.Auth
             return _currentUser!;
         }
 
-
-        // ---------------- Refresh token
         public async Task<string?> RefreshIdTokenAsync()
         {
             var refreshToken = await SecureStorage.GetAsync("refreshToken");
@@ -158,7 +152,6 @@ namespace oculus_sport.Services.Auth
             return newIdToken;
         }
 
-        // ------------------Log out user, clear stored tokens
         public async Task LogoutAsync()
         {
             _currentUser = null;
