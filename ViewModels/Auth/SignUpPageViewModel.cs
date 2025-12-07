@@ -2,18 +2,18 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using oculus_sport.Services.Auth;
 using oculus_sport.ViewModels.Base;
-using System.Text.RegularExpressions;
-using System.Xml.Linq;
 
 namespace oculus_sport.ViewModels.Auth
 {
     public partial class SignUpPageViewModel : BaseViewModel
     {
         private readonly IAuthService _authService;
-        //private readonly FirestoreService _firestoreService;
 
         [ObservableProperty]
         private string _email = string.Empty;
+
+        [ObservableProperty]
+        private string _username = string.Empty;
 
         [ObservableProperty]
         private string _password = string.Empty;
@@ -21,7 +21,6 @@ namespace oculus_sport.ViewModels.Auth
         [ObservableProperty]
         private string _confirmPassword = string.Empty;
 
-        // Added properties required for Backend Signup
         [ObservableProperty]
         private string _name = string.Empty;
 
@@ -31,7 +30,6 @@ namespace oculus_sport.ViewModels.Auth
         public SignUpPageViewModel(IAuthService authService)
         {
             _authService = authService;
-            //_firestoreService = firestoreService;
             Title = "Sign Up";
         }
 
@@ -40,14 +38,12 @@ namespace oculus_sport.ViewModels.Auth
         {
             if (IsBusy) return;
 
-            // 1. Basic Validation
-            if (string.IsNullOrWhiteSpace(Email) ||
-                string.IsNullOrWhiteSpace(Password) ||
-                string.IsNullOrWhiteSpace(ConfirmPassword) ||
-                string.IsNullOrWhiteSpace(Name) ||
+            // ... (Validation Logic kept same) ...
+            if (string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Username) ||
+                string.IsNullOrWhiteSpace(Password) || string.IsNullOrWhiteSpace(Name) ||
                 string.IsNullOrWhiteSpace(StudentId))
             {
-                await Shell.Current.DisplayAlert("Error", "Please fill in all fields (Email, Password, Name, ID).", "OK");
+                await Shell.Current.DisplayAlert("Error", "Please fill in all fields.", "OK");
                 return;
             }
 
@@ -57,27 +53,17 @@ namespace oculus_sport.ViewModels.Auth
                 return;
             }
 
-            // 2. Strong Password Validation
-            //if (!IsStrongPassword(Password))
-            //{
-            //    await Shell.Current.DisplayAlert("Weak Password",
-            //        "Password must be at least 8 characters long, contain an uppercase letter, and a special character.",
-            //        "OK");
-            //    return;
-            //}
-
             try
             {
                 IsBusy = true;
-
-                // Call Auth Service with all required backend parameters
-                var newUser = await _authService.SignUpAsync(Email, Password, Name, StudentId);
+                var newUser = await _authService.SignUpAsync(Email, Password, Name, StudentId, Username);
 
                 if (newUser != null)
                 {
-                    // At this point, user is created in Firebase Auth only
                     await Shell.Current.DisplayAlert("Success", "Account created successfully! Please log in.", "OK");
-                    await Shell.Current.GoToAsync("..");
+
+                    // FIX: Use Absolute Route to go to Login
+                    await Shell.Current.GoToAsync("//LoginPage");
                 }
             }
             catch (Exception ex)
@@ -93,16 +79,7 @@ namespace oculus_sport.ViewModels.Auth
         [RelayCommand]
         async Task GoToLogin()
         {
-            // Navigate back to Login Page
-            await Shell.Current.GoToAsync("..");
+            await Shell.Current.GoToAsync("//LoginPage");
         }
-
-        //-------------comment first to test signup and login
-        //private bool IsStrongPassword(string password)
-        //{
-        //    // Regex: At least 8 chars, 1 Upper, 1 Special char
-        //    var regex = new Regex(@"^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':""\\|,.<>\/?]).{8,}$");
-        //    return regex.IsMatch(password);
-        //}
     }
 }
