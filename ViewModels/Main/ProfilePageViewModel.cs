@@ -21,6 +21,10 @@ public partial class ProfilePageViewModel : BaseViewModel
     private string _email = string.Empty;
 
     [ObservableProperty]
+    private string _phoneNumber = string.Empty;
+
+
+    [ObservableProperty]
     private bool _isDarkMode;
 
     public ProfilePageViewModel(IAuthService authService)
@@ -53,6 +57,20 @@ public partial class ProfilePageViewModel : BaseViewModel
         }
     }
 
+    // --- load user info
+    public async Task LoadAsync()
+    {
+        var user = _authService.GetCurrentUser();
+        if (user != null)
+        {
+            Name = user.Name;
+            StudentId = user.StudentId;
+            Email = user.Email;
+            PhoneNumber = user.PhoneNumber;
+        }
+    }
+
+
     partial void OnIsDarkModeChanged(bool value)
     {
         Application.Current.UserAppTheme = value ? AppTheme.Dark : AppTheme.Light;
@@ -65,10 +83,9 @@ public partial class ProfilePageViewModel : BaseViewModel
         if (confirm)
         {
             await _authService.LogoutAsync();
-
-            // UPDATED: Navigate to LoginPage usually makes more sense for Logout
-            // But //SignUpPage will also work now that we fixed AppShell.xaml.cs
+            // Navigate to Login Page (Absolute Route to clear stack)
             await Shell.Current.GoToAsync("//LoginPage");
+
         }
     }
 }

@@ -49,7 +49,8 @@
                     <Border StrokeShape="RoundRectangle 10" StrokeThickness="0" BackgroundColor="White" Margin="0,0,0,15" Padding="15">
                         <Grid RowDefinitions="Auto, Auto">
                             <Grid Grid.Row="0" ColumnDefinitions="*, Auto">
-                                <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="16" TextColor="{StaticResource Black}"/>
+                                <!-- Fixed binding here -->
+                                <Label Text="{Binding FacilityName}" FontAttributes="Bold" FontSize="16" TextColor="{StaticResource Black}"/>
                             </Grid>
 
                             <VerticalStackLayout Grid.Row="1" Margin="0,10,0,0">

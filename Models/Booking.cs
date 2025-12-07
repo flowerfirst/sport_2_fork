@@ -22,6 +22,7 @@ namespace oculus_sport.Models
         public DateTime Date { get; set; }
         public string TimeSlot { get; set; } = string.Empty;
         public string Status { get; set; } = "Pending";
+        public int SlotNumber { get; set; }
 
         // Contact Details (Required for your Booking Form)
         public string ContactName { get; set; } = string.Empty;
@@ -29,6 +30,7 @@ namespace oculus_sport.Models
         public string ContactPhone { get; set; } = string.Empty;
 
         // Payment (Retained your 'Free' default but kept the field)
-        public string TotalCost { get; set; } = "Free";
+        public decimal Price { get; set; } = 0m;
+        public string TotalCost { get; set; }
     }
 }

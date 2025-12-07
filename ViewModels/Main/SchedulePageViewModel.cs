@@ -68,7 +68,7 @@ public partial class SchedulePageViewModel : BaseViewModel
             if (day == DayOfWeek.Monday || day == DayOfWeek.Thursday || day == DayOfWeek.Friday)
             {
                 for (int i = 1; i <= 3; i++)
-                    AvailableFacilities.Add(new Facility { Name = $"Badminton Court {i}", Location = "10:00, 12:00, 14:00", ImageUrl = "badminton_court.webp" });
+                    AvailableFacilities.Add(new Facility { FacilityName = $"Badminton Court {i}", Location = "10:00, 12:00, 14:00", ImageUrl = "badminton_court.webp" });
             }
         }
         else if (selectedCategory == "Ping-Pong")
@@ -77,7 +77,7 @@ public partial class SchedulePageViewModel : BaseViewModel
             if (day == DayOfWeek.Monday || day == DayOfWeek.Friday)
             {
                 for (int i = 1; i <= 4; i++)
-                    AvailableFacilities.Add(new Facility { Name = $"Ping-Pong Table {i}", Location = "10:00, 12:00, 14:00", ImageUrl = "pingpong_court.jpg" });
+                    AvailableFacilities.Add(new Facility { FacilityName = $"Ping-Pong Table {i}", Location = "10:00, 12:00, 14:00", ImageUrl = "pingpong_court.jpg" });
             }
         }
         else if (selectedCategory == "Basketball")
@@ -85,13 +85,13 @@ public partial class SchedulePageViewModel : BaseViewModel
             var day = SelectedDate.DayOfWeek;
             if (day != DayOfWeek.Saturday && day != DayOfWeek.Sunday)
             {
-                AvailableFacilities.Add(new Facility { Name = "Basketball Court 1", Location = "10:00, 12:00, 14:00, 16:00", ImageUrl = "basketball_court.webp" });
+                AvailableFacilities.Add(new Facility { FacilityName = "Basketball Court 1", Location = "10:00, 12:00, 14:00, 16:00", ImageUrl = "basketball_court.webp" });
             }
         }
 
         if (AvailableFacilities.Count == 0)
         {
-            AvailableFacilities.Add(new Facility { Name = "No Courts Available", Location = "Closed on this day", ImageUrl = "dotnet_bot.png" });
+            AvailableFacilities.Add(new Facility { FacilityName = "No Courts Available", Location = "Closed on this day", ImageUrl = "dotnet_bot.png" });
         }
 
         IsBusy = false;

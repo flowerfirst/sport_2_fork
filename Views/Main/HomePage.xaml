@@ -9,7 +9,10 @@
 
     <Grid RowDefinitions="Auto,*">
 
-        <Grid Grid.Row="0" BackgroundColor="{StaticResource Primary}" Padding="20,20,20,30" RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+        <!-- Header -->
+        <Grid Grid.Row="0" BackgroundColor="{StaticResource Primary}" 
+              Padding="20,20,20,30" RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+
             <VerticalStackLayout Grid.Column="0" Spacing="2">
                 <Label Text="{Binding UserName, StringFormat='Hello, {0}'}" 
                        TextColor="{StaticResource PrimaryText}" 
@@ -25,9 +28,10 @@
                          WidthRequest="30" 
                          HorizontalOptions="End" 
                          VerticalOptions="Start"
-                         Source="uts_logo.png"
-                         Command="{Binding GoToNotificationsCommand}"/>
+                         Source="dotnet_bot.png"
+                         Command="{Binding GoToNotificationsCommand}" />
 
+            <!-- Search Bar -->
             <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,20,0,0" 
                     StrokeShape="RoundRectangle 10" 
                     BackgroundColor="White" 
@@ -45,16 +49,24 @@
             </Border>
         </Grid>
 
+        <!-- Content -->
         <ScrollView Grid.Row="1" Padding="20">
             <VerticalStackLayout Spacing="20">
 
+                <!-- Categories -->
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Categories" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}"/>
+                    <Label Text="Categories" 
+                           FontSize="18" 
+                           FontAttributes="Bold" 
+                           TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
 
-                    <CollectionView ItemsSource="{Binding Categories}" HeightRequest="50">
+                    <CollectionView x:Name="CategoriesCollectionView"
+                                    ItemsSource="{Binding Categories}"
+                                    HeightRequest="50">
                         <CollectionView.ItemsLayout>
                             <LinearItemsLayout Orientation="Horizontal" ItemSpacing="10"/>
                         </CollectionView.ItemsLayout>
+
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:SportCategory">
                                 <Border StrokeShape="RoundRectangle 20" 
@@ -66,7 +78,9 @@
                                            FontAttributes="Bold" 
                                            VerticalOptions="Center"/>
                                     <Border.GestureRecognizers>
-                                        <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:HomePageViewModel}}, Path=SelectCategoryCommand}" CommandParameter="{Binding .}"/>
+                                        <TapGestureRecognizer
+                                            Command="{Binding BindingContext.SelectCategoryCommand, Source={x:Reference CategoriesCollectionView}}"
+                                            CommandParameter="{Binding .}" />
                                     </Border.GestureRecognizers>
                                 </Border>
                             </DataTemplate>
@@ -74,8 +88,12 @@
                     </CollectionView>
                 </VerticalStackLayout>
 
+                <!-- Available Courts -->
                 <VerticalStackLayout Spacing="10">
-                    <Label Text="Available Courts" FontSize="18" FontAttributes="Bold" TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}"/>
+                    <Label Text="Available Courts" 
+                           FontSize="18" 
+                           FontAttributes="Bold" 
+                           TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
 
                     <CollectionView ItemsSource="{Binding Facilities}">
                         <CollectionView.ItemsLayout>
@@ -84,17 +102,29 @@
 
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:Facility">
-                                <Border StrokeShape="RoundRectangle 15" Stroke="{StaticResource Gray200}" StrokeThickness="1" BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray950}}">
-                                    <Grid RowDefinitions="120, Auto">
+                                <Border StrokeShape="RoundRectangle 15" 
+                                        Stroke="{StaticResource Gray200}" 
+                                        StrokeThickness="1" 
+                                        BackgroundColor="{AppThemeBinding Light=White, Dark={StaticResource Gray950}}">
+                                    <Grid RowDefinitions="120,Auto">
                                         <Image Grid.Row="0" Source="{Binding ImageUrl}" Aspect="AspectFill" BackgroundColor="LightGray"/>
 
                                         <VerticalStackLayout Grid.Row="1" Padding="10" Spacing="2">
-                                            <Label Text="{Binding Name}" FontAttributes="Bold" FontSize="14" LineBreakMode="TailTruncation" TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}"/>
-                                            <Label Text="{Binding Location}" FontSize="11" TextColor="Gray" LineBreakMode="TailTruncation"/>
+                                            <Label Text="{Binding FacilityName}" 
+                                                   FontAttributes="Bold" 
+                                                   FontSize="14" 
+                                                   LineBreakMode="TailTruncation" 
+                                                   TextColor="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}"/>
+                                            <Label Text="{Binding Location}" 
+                                                   FontSize="11" 
+                                                   TextColor="Gray" 
+                                                   LineBreakMode="TailTruncation"/>
                                         </VerticalStackLayout>
 
                                         <Grid.GestureRecognizers>
-                                            <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type vm:HomePageViewModel}}, Path=BookFacilityCommand}" CommandParameter="{Binding .}"/>
+                                            <TapGestureRecognizer 
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:HomePageViewModel}}, Path=BookFacilityCommand}" 
+                                                CommandParameter="{Binding .}"/>
                                         </Grid.GestureRecognizers>
                                     </Grid>
                                 </Border>
@@ -105,5 +135,6 @@
 
             </VerticalStackLayout>
         </ScrollView>
+
     </Grid>
 </ContentPage>

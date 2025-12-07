@@ -8,11 +8,14 @@ namespace oculus_sport.Services.Auth
         // Parameter name changed to 'input' to imply Email OR Username
         Task<User> LoginAsync(string input, string password);
 
-        // Added username parameter
-        Task<User> SignUpAsync(string email, string password, string name, string studentId, string username);
+        // Added the four required parameters (name, studentId) and return User.
+        Task<User> SignUpAsync(string email, string password, string name, string studentId, string phoneNumber);
 
         Task LogoutAsync();
+
+        // get current user - profile page
         User? GetCurrentUser();
         Task<string?> RefreshIdTokenAsync();
+
     }
 }

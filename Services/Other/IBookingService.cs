@@ -13,6 +13,10 @@ namespace oculus_sport.Services
         /// Executes a simulated secure booking process. Checks memory for availability.
         /// </summary>
         Task<Booking?> ProcessAndConfirmBookingAsync(Booking newBooking);
+        Task<List<Booking>> GetUserBookingsAsync(string userId);
+        Task ListenToBookingsAsync(string idToken, Action<string> onUpdate);
+
+        IReadOnlyList<Booking> LocalPendingBookings { get; }
 
         /// <summary>
         /// Fetches all time slots for a specific facility on a given date and marks them as available/booked.
@@ -24,6 +28,7 @@ namespace oculus_sport.Services
         /// </summary>
         Task<bool> IsSlotAvailableAsync(string facilityId, string timeSlot, DateTime date);
 
+
         /// <summary>
         /// NEW: Calculates the final cost based on facility, time slot, and user details.
         /// </summary>
@@ -34,7 +39,7 @@ namespace oculus_sport.Services
         /// <summary>
         /// Fetches all bookings for the current user.
         /// </summary>
-        Task<List<Booking>> GetUserBookingsAsync(string userId);
+
 
         /// <summary>
         /// Updates a booking status (e.g., Cancellation).

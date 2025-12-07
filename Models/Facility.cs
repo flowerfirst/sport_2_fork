@@ -1,12 +1,24 @@
-namespace oculus_sport.Models;
 
-public class Facility
+
+namespace oculus_sport.Models
 {
-    public string Name { get; set; } = string.Empty;
-    public string Location { get; set; } = string.Empty;
-    public string ImageUrl { get; set; } = "badminton_court.png"; 
-    public string Price { get; set; } = string.Empty;
-    public double Rating { get; set; }
-    public bool IsAvailable { get; set; }
-    public string LocationMapUrl { get; set; } = string.Empty;
+    public class Facility
+    {
+        public string FacilityId { get; set; }
+        public string FacilityName { get; set; }
+        public string Location { get; set; }
+        public string ImageUrl { get; set; }
+        public decimal Price { get; set; }
+        public double Rating { get; set; }
+        public string Category { get; set; } = string.Empty;
+
+        //[JsonPropertyName("isAvailable")]
+        //public bool IsAvailable { get; set; }
+
+        //public string IdToken { get; set; }
+    }
+
+
+
 }
+

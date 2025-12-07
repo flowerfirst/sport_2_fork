@@ -4,17 +4,17 @@
              xmlns:vm="clr-namespace:oculus_sport.ViewModels.Main"
              xmlns:models="clr-namespace:oculus_sport.Models"
              x:Class="oculus_sport.Views.Main.BookingPage"
-             Title="{Binding Facility.Name}"
+             Title="{Binding Facility.FacilityName}"
              BackgroundColor="{StaticResource PageBackgroundLight}">
 
     <Grid RowDefinitions="Auto, *, Auto">
-
+        <!--facility info-->
         <Border Grid.Row="0" Margin="20" Padding="15" StrokeShape="RoundRectangle 10" BackgroundColor="{StaticResource White}" StrokeThickness="0">
             <VerticalStackLayout Spacing="5">
                 <Label Text="Selected Court" FontSize="12" TextColor="{StaticResource Gray500}"/>
-                <Label Text="{Binding Facility.Name}" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource Black}"/>
+                <Label Text="{Binding Facility.FacilityName}" FontSize="20" FontAttributes="Bold" TextColor="{StaticResource Black}"/>
                 <Label Text="{Binding Facility.Location}" TextColor="{StaticResource Gray500}"/>
-                <Label Text="{Binding Facility.Price}" TextColor="{StaticResource Primary}" FontAttributes="Bold"/>
+                <Label Text="{Binding Facility.Price, StringFormat='Price: RM {0:F2}'}" TextColor="{StaticResource Primary}" FontAttributes="Bold"/>
             </VerticalStackLayout>
         </Border>
 
@@ -43,6 +43,7 @@
                 <VerticalStackLayout Spacing="10">
                     <Label Text="Available Slots" FontSize="16" FontAttributes="Bold" TextColor="{StaticResource Black}"/>
 
+                    <!--timeslot-->
                     <CollectionView ItemsSource="{Binding TimeSlots}">
                         <CollectionView.ItemsLayout>
                             <GridItemsLayout Orientation="Vertical" Span="3" VerticalItemSpacing="10" HorizontalItemSpacing="10"/>
