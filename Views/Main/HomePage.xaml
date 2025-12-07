@@ -25,7 +25,7 @@
                          WidthRequest="30" 
                          HorizontalOptions="End" 
                          VerticalOptions="Start"
-                         Source="dotnet_bot.png"
+                         Source="uts_logo.png"
                          Command="{Binding GoToNotificationsCommand}"/>
 
             <Border Grid.Row="1" Grid.ColumnSpan="2" Margin="0,20,0,0" 
