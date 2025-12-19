@@ -5,40 +5,129 @@
              x:Class="oculus_sport.Views.Auth.LoginPage"
              Title="Login"
              Shell.NavBarIsVisible="False"
-             BackgroundColor="{StaticResource White}">
+             BackgroundColor="{StaticResource PageBackgroundLight}">
 
-    <ScrollView>
-        <VerticalStackLayout Spacing="25" Padding="30" VerticalOptions="Center">
+    <Grid>
+        <!-- 1. DECORATIVE BACKGROUND HEADER -->
+        <!-- Navy Blue curve at the top -->
+        <Border VerticalOptions="Start" 
+                HeightRequest="280"
+                BackgroundColor="{StaticResource Primary}"
+                StrokeThickness="0"
+                StrokeShape="RoundRectangle 0,0,40,40"
+                HorizontalOptions="Fill"/>
 
-            <Image Source="uts_logo.png" HeightRequest="180" HorizontalOptions="Center" Aspect="AspectFit" Margin="0,20,0,10"/>
+        <!-- 2. SCROLLABLE CONTENT -->
+        <ScrollView>
+            <VerticalStackLayout Spacing="0" Padding="25,40,25,20">
 
-            <Label Text="OCULUS SPORT" FontSize="20" TextColor="{StaticResource Gray600}" HorizontalOptions="Center" CharacterSpacing="4"/>
+                <!-- LOGO SECTION (On top of Blue Background) -->
+                <VerticalStackLayout Spacing="10" HorizontalOptions="Center" Margin="0,0,0,30">
+                    <!-- White Circle Container for Logo -->
+                    <Border StrokeShape="RoundRectangle 60"
+                            HeightRequest="120"
+                            WidthRequest="120"
+                            BackgroundColor="White"
+                            StrokeThickness="0"
+                            Padding="15">
+                        <Border.Shadow>
+                            <Shadow Brush="Black" Offset="0,4" Radius="10" Opacity="0.2"/>
+                        </Border.Shadow>
+                        <Image Source="uts_logo.png" Aspect="AspectFit"/>
+                    </Border>
 
-            <Label Text="Welcome back" FontSize="28" TextColor="{StaticResource Black}" FontAttributes="Bold" HorizontalOptions="Center" Margin="0,10,0,10"/>
+                    <Label Text="OCULUS SPORT" 
+                           TextColor="{StaticResource White}" 
+                           FontSize="18" 
+                           FontAttributes="Bold" 
+                           CharacterSpacing="2"
+                           HorizontalOptions="Center"/>
+                </VerticalStackLayout>
 
-            <VerticalStackLayout Spacing="15">
-                <Border Stroke="{StaticResource Gray300}" StrokeThickness="1" StrokeShape="RoundRectangle 10" Padding="15,0">
-                    <Entry Placeholder="Username or Email" Text="{Binding Email}" TextColor="{StaticResource Black}" PlaceholderColor="{StaticResource Gray400}" HeightRequest="50"/>
+                <!-- LOGIN CARD (Floating White Box) -->
+                <Border BackgroundColor="White" 
+                        StrokeShape="RoundRectangle 20" 
+                        StrokeThickness="0" 
+                        Padding="25,35">
+                    <Border.Shadow>
+                        <Shadow Brush="{StaticResource Primary}" Offset="0,10" Radius="20" Opacity="0.1"/>
+                    </Border.Shadow>
+
+                    <!-- Increased spacing here from 20 to 25 -->
+                    <VerticalStackLayout Spacing="25">
+
+                        <!-- Welcome Text -->
+                        <VerticalStackLayout Spacing="5" Margin="0,0,0,10">
+                            <Label Text="Welcome Back" 
+                                   FontSize="26" 
+                                   FontAttributes="Bold" 
+                                   TextColor="{StaticResource Primary}"
+                                   HorizontalOptions="Center"/>
+                            <Label Text="Login to book your court" 
+                                   FontSize="14" 
+                                   TextColor="{StaticResource Gray500}"
+                                   HorizontalOptions="Center"/>
+                        </VerticalStackLayout>
+
+                        <!-- Username Input -->
+
+                        <Entry Placeholder="Username or Email"
+                                Text="{Binding Email}"
+                                TextColor="{StaticResource PrimaryText}"
+                                PlaceholderColor="{StaticResource Gray500}"
+                                Margin="15,0"
+                                VerticalOptions="Center"/>
+
+                        <!-- Password Input -->
+                        <!-- Added Margin top to ensure separation -->
+
+                        <Entry Placeholder="Password" 
+                                IsPassword="True"
+                                Text="{Binding Password}"
+                                TextColor="{StaticResource PrimaryText}"
+                                PlaceholderColor="{StaticResource Gray500}"
+                                Margin="15,0"
+                                VerticalOptions="Center"/>
+
+
+                        <!-- Forgot Password Link (Visual Only) -->
+                        <Label Text="Forgot Password?" 
+                               TextColor="{StaticResource Primary}" 
+                               FontSize="12" 
+                               HorizontalOptions="End"
+                               FontAttributes="Bold"/>
+
+                        <!-- Login Button -->
+                        <Button Text="LOG IN" 
+                                Command="{Binding LoginCommand}"
+                                BackgroundColor="{StaticResource Primary}"
+                                TextColor="White"
+                                CornerRadius="25"
+                                HeightRequest="50"
+                                FontAttributes="Bold"
+                                Margin="0,10,0,0">
+                            <Button.Shadow>
+                                <Shadow Brush="{StaticResource Primary}" Offset="0,5" Radius="10" Opacity="0.3"/>
+                            </Button.Shadow>
+                        </Button>
+
+                    </VerticalStackLayout>
                 </Border>
 
-                <Border Stroke="{StaticResource Gray300}" StrokeThickness="1" StrokeShape="RoundRectangle 10" Padding="15,0">
-                    <Entry Placeholder="Password" IsPassword="True" Text="{Binding Password}" TextColor="{StaticResource Black}" PlaceholderColor="{StaticResource Gray400}" HeightRequest="50"/>
-                </Border>
+                <!-- Sign Up Link (Outside Card) -->
+                <HorizontalStackLayout HorizontalOptions="Center" Spacing="5" Margin="0,30,0,0">
+                    <Label Text="Don't have an account?" TextColor="{StaticResource Gray600}"/>
+                    <Label Text="Sign Up" 
+                           TextColor="{StaticResource Primary}" 
+                           FontAttributes="Bold"
+                           TextDecorations="Underline">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Command="{Binding GoToSignUpCommand}"/>
+                        </Label.GestureRecognizers>
+                    </Label>
+                </HorizontalStackLayout>
+
             </VerticalStackLayout>
-
-            <Button Text="Log in" Command="{Binding LoginCommand}" BackgroundColor="{StaticResource Primary}" TextColor="White" CornerRadius="25" HeightRequest="50" FontAttributes="Bold" Margin="0,10,0,0"/>
-
-            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" Color="{StaticResource Primary}" HorizontalOptions="Center"/>
-
-            <HorizontalStackLayout HorizontalOptions="Center" Spacing="5">
-                <Label Text="Don't have an account? " TextColor="{StaticResource Gray500}"/>
-                <Label Text="Sign up" TextColor="{StaticResource Primary}" FontAttributes="Bold" TextDecorations="Underline">
-                    <Label.GestureRecognizers>
-                        <TapGestureRecognizer Command="{Binding GoToSignUpCommand}"/>
-                    </Label.GestureRecognizers>
-                </Label>
-            </HorizontalStackLayout>
-
-        </VerticalStackLayout>
-    </ScrollView>
+        </ScrollView>
+    </Grid>
 </ContentPage>

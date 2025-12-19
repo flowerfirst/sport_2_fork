@@ -1,6 +1,8 @@
-﻿using oculus_sport.Services.Auth;
-using oculus_sport.Services.Storage;
+﻿using Newtonsoft.Json.Linq;
+using oculus_sport.Models;
+using oculus_sport.Services.Auth;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace oculus_sport;
 
@@ -10,97 +12,81 @@ public partial class App : Application
     {
         InitializeComponent();
 
-        // Force Light Theme on Startup
         UserAppTheme = AppTheme.Light;
+    }
 
-        // Set AppShell as the root page
-        MainPage = new AppShell();
+    protected override Window CreateWindow(IActivationState? activationState)
+    {
+        var window = new Window
+        {
+            Page = new AppShell()
+        };
 
-        // Defer startup logic until Shell is ready
         MainThread.BeginInvokeOnMainThread(async () =>
         {
             await HandleStartupAsync();
         });
+
+        return window;
     }
 
+    [SuppressMessage("Interoperability", "CA1416")]
+    
     private async Task HandleStartupAsync()
     {
-        // Guard against Shell not being ready
+        var timeout = Task.Delay(3000);
+        while (Shell.Current == null && !timeout.IsCompleted)
+            await Task.Delay(50);
+
         if (Shell.Current == null)
         {
-            Debug.WriteLine("[Startup] Shell.Current is null, skipping startup logic.");
+            Debug.WriteLine("[Startup] Shell.Current still null.");
             return;
         }
 
-        var current = Connectivity.NetworkAccess;
-        Debug.WriteLine($"[Startup] Network access: {current}");
-
-        if (current != NetworkAccess.Internet)
+        var authService = IPlatformApplication.Current?.Services.GetService<IAuthService>();
+        User? cachedUser = null;
+        if (authService != null)
         {
-            string cachedUser = Preferences.Get("LastUserId", string.Empty);
-            if (!string.IsNullOrEmpty(cachedUser))
-            {
-                await Shell.Current.GoToAsync("//HistoryPage");
-                return;
-            }
+            cachedUser = await authService.GetCachedUserAsync();
         }
 
         var idToken = await SecureStorage.GetAsync("idToken");
         Debug.WriteLine($"[Startup] Retrieved idToken: {(string.IsNullOrEmpty(idToken) ? "null/empty" : "present")}");
 
-        if (!string.IsNullOrEmpty(idToken))
+        if (!string.IsNullOrEmpty(idToken) && !IsTokenExpired(idToken))
         {
-            bool expired = IsTokenExpired(idToken);
-            Debug.WriteLine($"[Startup] idToken expired? {expired}");
+            Debug.WriteLine("[Startup] Token valid. Going home.");
+            await Shell.Current.GoToAsync("//HomePage");
+            return;
+        }
 
-            if (!expired)
+        if (authService != null)
+        {
+            var refreshedToken = await authService.RefreshIdTokenAsync();
+            if (!string.IsNullOrEmpty(refreshedToken))
             {
+                await SecureStorage.SetAsync("idToken", refreshedToken);
                 await Shell.Current.GoToAsync("//HomePage");
                 return;
             }
         }
 
-        var refreshToken = await SecureStorage.GetAsync("refreshToken");
-        Debug.WriteLine($"[Startup] Retrieved refreshToken: {(string.IsNullOrEmpty(refreshToken) ? "null/empty" : "present")}");
-
-        var authService = IPlatformApplication.Current.Services.GetService<IAuthService>();
-
-        if (!string.IsNullOrEmpty(refreshToken) && authService != null)
+        if (cachedUser != null)
         {
-            Debug.WriteLine("[Startup] Attempting to refresh idToken...");
-            var newIdToken = await authService.RefreshIdTokenAsync();
-
-            if (!string.IsNullOrEmpty(newIdToken))
-            {
-                Debug.WriteLine("[Startup] Refresh succeeded, new idToken stored.");
-                await SecureStorage.SetAsync("idToken", newIdToken);
-                await Shell.Current.GoToAsync("//HomePage");
-                return;
-            }
-            else
-            {
-                Debug.WriteLine("[Startup] Refresh failed, navigating to login.");
-            }
-        }
-        else
-        {
-            Debug.WriteLine("[Startup] No refreshToken or authService unavailable.");
+            Debug.WriteLine("[Startup] No valid token but cached user exists. Navigating in offline mode.");
+            await Shell.Current.GoToAsync("//HomePage");
+            return;
         }
 
-        // Only if refresh fails → go to login
         await Shell.Current.GoToAsync("//LoginPage");
     }
 
-
-    // Helper to check if token expired
+    [SuppressMessage("Interoperability", "CA1416")]
     private bool IsTokenExpired(string idToken)
     {
         var parts = idToken.Split('.');
-        if (parts.Length != 3)
-        {
-            Debug.WriteLine("[TokenCheck] Invalid JWT format.");
-            return true;
-        }
+        if (parts.Length != 3) return true;
 
         var payload = parts[1];
         var jsonBytes = Convert.FromBase64String(
@@ -109,22 +95,11 @@ public partial class App : Application
         var json = System.Text.Encoding.UTF8.GetString(jsonBytes);
 
         var expMatch = System.Text.RegularExpressions.Regex.Match(json, "\"exp\":(\\d+)");
-        if (!expMatch.Success)
-        {
-            Debug.WriteLine("[TokenCheck] No exp claim found.");
-            return true;
-        }
+        if (!expMatch.Success) return true;
 
         var expUnix = long.Parse(expMatch.Groups[1].Value);
         var expDate = DateTimeOffset.FromUnixTimeSeconds(expUnix);
 
-        Debug.WriteLine($"[TokenCheck] Token expires at: {expDate:yyyy-MM-dd HH:mm:ss} UTC");
-        Debug.WriteLine($"[TokenCheck] Current time: {DateTimeOffset.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
-
-        bool expired = expDate < DateTimeOffset.UtcNow;
-        Debug.WriteLine($"[TokenCheck] Token expired? {expired}");
-
-        return expired;
+        return expDate < DateTimeOffset.UtcNow;
     }
-
 }

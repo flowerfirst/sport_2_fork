@@ -5,28 +5,38 @@
              xmlns:models="clr-namespace:oculus_sport.Models"
              x:Class="oculus_sport.Views.Main.NotificationPage"
              Title="Notifications"
-             BackgroundColor="{StaticResource PageBackgroundLight}">
+             BackgroundColor="{StaticResource PageBackgroundLight}"
+             x:DataType="vm:NotificationPageViewModel">
 
-    <CollectionView ItemsSource="{Binding Notifications}" Margin="20">
-        <CollectionView.ItemTemplate>
-            <DataTemplate x:DataType="models:NotificationItem">
-                <Border StrokeShape="RoundRectangle 10" StrokeThickness="0" BackgroundColor="{StaticResource White}" Margin="0,0,0,10" Padding="15">
-                    <Grid RowDefinitions="Auto, Auto, Auto" ColumnDefinitions="*, Auto">
+    <RefreshView IsRefreshing="{Binding IsRefreshing}"
+                 Command="{Binding RefreshCommand}">
+        <CollectionView ItemsSource="{Binding Notifications}" Margin="20">
+            <CollectionView.EmptyView>
+                <VerticalStackLayout Padding="40" Spacing="8" HorizontalOptions="Center" VerticalOptions="Center">
+                    <Label Text="No notifications yet" FontAttributes="Bold" FontSize="18" TextColor="{StaticResource Gray500}"/>
+                    <Label Text="You're all caught up." FontSize="14" TextColor="{StaticResource Gray400}"/>
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:NotificationItem">
+                    <Border StrokeShape="RoundRectangle 10" StrokeThickness="0" BackgroundColor="{StaticResource White}" Margin="0,0,0,10" Padding="15">
+                        <Grid RowDefinitions="Auto, Auto, Auto" ColumnDefinitions="*, Auto">
 
-                        <!-- Title & Dot -->
-                        <Label Grid.Row="0" Grid.Column="0" Text="{Binding Title}" FontAttributes="Bold" FontSize="16" TextColor="{StaticResource Black}"/>
-                        <BoxView Grid.Row="0" Grid.Column="1" HeightRequest="8" WidthRequest="8" CornerRadius="4" BackgroundColor="{StaticResource Primary}" IsVisible="{Binding IsRead, Converter={StaticResource InvertedBoolConverter}}"/>
-                        <!-- Show dot if unread -->
+                            <!-- Title & Dot -->
+                            <Label Grid.Row="0" Grid.Column="0" Text="{Binding Title}" FontAttributes="Bold" FontSize="16" TextColor="{StaticResource Black}"/>
+                            <BoxView Grid.Row="0" Grid.Column="1" HeightRequest="8" WidthRequest="8" CornerRadius="4" BackgroundColor="{StaticResource Primary}" IsVisible="{Binding IsRead, Converter={StaticResource InvertedBoolConverter}}"/>
+                            <!-- Show dot if unread -->
 
-                        <!-- Message -->
-                        <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Message}" FontSize="14" TextColor="Gray" Margin="0,5,0,5"/>
+                            <!-- Message -->
+                            <Label Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Message}" FontSize="14" TextColor="Gray" Margin="0,5,0,5"/>
 
-                        <!-- Time -->
-                        <Label Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding Time}" FontSize="11" TextColor="{StaticResource Gray400}" HorizontalOptions="End"/>
+                            <!-- Time -->
+                            <Label Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding RelativeTime}" FontSize="11" TextColor="{StaticResource Gray400}" HorizontalOptions="End"/>
 
-                    </Grid>
-                </Border>
-            </DataTemplate>
-        </CollectionView.ItemTemplate>
-    </CollectionView>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+    </RefreshView>
 </ContentPage>

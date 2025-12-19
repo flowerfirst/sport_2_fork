@@ -94,6 +94,15 @@ namespace oculus_sport.Services.Storage
         }
 
         /// <summary>
+        /// Removes any cached user profile (invoked on logout).
+        /// </summary>
+        public async Task ClearLocalUserProfileAsync()
+        {
+            await Init();
+            await _database.DeleteAllAsync<User>();
+        }
+
+        /// <summary>
         /// Retrieves the locally cached booking history for the current user.
         /// </summary>
         public async Task<List<Booking>> GetLocalBookingHistoryAsync(string userId)
@@ -113,6 +122,28 @@ namespace oculus_sport.Services.Storage
         {
             await Init();
             await _database.InsertOrReplaceAsync(booking);
+        }
+
+        /// <summary>
+        /// Replaces the cached booking history for a user with the latest data from the server.
+        /// </summary>
+        public async Task SaveBookingHistoryAsync(string userId, IEnumerable<Booking> bookings)
+        {
+            await Init();
+
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                await _database.DeleteAllAsync<Booking>();
+            }
+            else
+            {
+                await _database.ExecuteAsync("DELETE FROM Booking WHERE UserId = ?", userId);
+            }
+
+            if (bookings == null)
+                return;
+
+            await _database.InsertAllAsync(bookings);
         }
     }
 }

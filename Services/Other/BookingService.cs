@@ -42,7 +42,7 @@ public class BookingService : IBookingService
     //---1. get price
     private async Task<decimal> GetFacilityPriceFromFirestoreAsync(string facilityId, string idToken)
     {
-        
+
         var facilities = await _firebaseDataService.GetFacilitiesAsync(idToken);
 
         // Find the facility by its document ID or name
@@ -98,11 +98,13 @@ public class BookingService : IBookingService
         List<string> validSlots = GetValidSlotsByFacility(facilityId, date.DayOfWeek);
 
         var existingBookings = await GetBookingsByFacilityAndDateAsync(facilityId, date);
-        var bookedSlots = existingBookings.Select(b => b.TimeSlot)
-                    .Concat(_localPendingBookings
-                            .Where(b => b.FacilityName == facilityId && b.Date.Date == date.Date)
-                            .Select(b => b.TimeSlot))
-                    .ToHashSet();
+        var bookedSlots = existingBookings
+            .Where(b => BlocksSlot(b.Status))
+            .Select(b => b.TimeSlot)
+            .Concat(_localPendingBookings
+                    .Where(b => b.FacilityName == facilityId && b.Date.Date == date.Date && BlocksSlot(b.Status))
+                    .Select(b => b.TimeSlot))
+            .ToHashSet();
 
         foreach (var slot in validSlots)
         {
@@ -243,27 +245,38 @@ public class BookingService : IBookingService
         if (res.IsSuccessStatusCode)
         {
             var json = JsonDocument.Parse(responseBody);
-            foreach (var doc in json.RootElement.GetProperty("documents").EnumerateArray())
+            if (json.RootElement.TryGetProperty("documents", out var docs))
             {
-                var fields = doc.GetProperty("fields");
-                var booking = new Booking
+                foreach (var doc in docs.EnumerateArray())
                 {
-                    Id = doc.GetProperty("name").GetString()?.Split('/').Last(),
-                    UserId = fields.GetProperty("userId").GetProperty("stringValue").GetString(),
-                    FacilityName = fields.GetProperty("facilityName").GetProperty("stringValue").GetString(),
-                    FacilityImage = fields.GetProperty("imageUrl").GetProperty("stringValue").GetString(), // ✅ new line
-                    Date = DateTime.Parse(fields.GetProperty("date").GetProperty("timestampValue").GetString(), null, DateTimeStyles.RoundtripKind),
-                    TimeSlot = fields.GetProperty("timeSlot").GetProperty("stringValue").GetString(),
-                    SlotNumber = int.Parse(fields.GetProperty("slotNumber").GetProperty("integerValue").GetString()),
-                    Status = fields.GetProperty("status").GetProperty("stringValue").GetString(),
-                    TotalCost = fields.GetProperty("totalCost").GetProperty("stringValue").GetString(),
-                    ContactName = fields.GetProperty("contactName").GetProperty("stringValue").GetString(),
-                    ContactPhone = fields.GetProperty("contactPhone").GetProperty("stringValue").GetString(),
-                    ContactStudentId = fields.GetProperty("contactStudentId").GetProperty("stringValue").GetString()
-                };
+                    try
+                    {
+                        var fields = doc.GetProperty("fields");
 
-                if (booking.UserId == userId)
-                    bookings.Add(booking);
+                        var booking = new Booking
+                        {
+                            Id = TryGetDocumentId(doc),
+                            UserId = GetStringField(fields, "userId"),
+                            FacilityName = GetStringField(fields, "facilityName"),
+                            FacilityImage = GetStringField(fields, "imageUrl"), // ✅ new line
+                            Date = GetDateField(fields, "date"),
+                            TimeSlot = GetStringField(fields, "timeSlot"),
+                            SlotNumber = GetIntField(fields, "slotNumber"),
+                            Status = GetStringField(fields, "status"),
+                            TotalCost = GetStringField(fields, "totalCost"),
+                            ContactName = GetStringField(fields, "contactName"),
+                            ContactPhone = GetStringField(fields, "contactPhone"),
+                            ContactStudentId = GetStringField(fields, "contactStudentId")
+                        };
+
+                        if (string.IsNullOrEmpty(userId) || booking.UserId == userId)
+                            bookings.Add(booking);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.WriteLine($"[Firestore GetUserBookings] Skipping doc due to parse error: {ex.Message}");
+                    }
+                }
             }
         }
 
@@ -306,21 +319,28 @@ public class BookingService : IBookingService
 
         foreach (var doc in docs.EnumerateArray())
         {
-            var fields = doc.GetProperty("fields");
-            var booking = new Booking
+            try
             {
-                FacilityName = fields.GetProperty("facilityName").GetProperty("stringValue").GetString(),
-                TimeSlot = fields.GetProperty("timeSlot").GetProperty("stringValue").GetString(),
-                Date = DateTime.Parse(fields.GetProperty("date").GetProperty("timestampValue").GetString(), null, DateTimeStyles.RoundtripKind)
-            };
+                var fields = doc.GetProperty("fields");
+                var booking = new Booking
+                {
+                    FacilityName = GetStringField(fields, "facilityName"),
+                    TimeSlot = GetStringField(fields, "timeSlot"),
+                    Date = GetDateField(fields, "date"),
+                    Status = GetStringField(fields, "status")
+                };
 
-            if (booking.FacilityName == facilityName && booking.Date.Date == date.Date)
-                bookings.Add(booking);
+                if (booking.FacilityName == facilityName && booking.Date.Date == date.Date && BlocksSlot(booking.Status))
+                    bookings.Add(booking);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[GetBookingsByFacilityAndDateAsync] Skipping doc due to parse error: {ex.Message}");
+            }
         }
 
-        // Merge with local pending bookings
         bookings.AddRange(_localPendingBookings
-            .Where(b => b.FacilityName == facilityName && b.Date.Date == date.Date));
+            .Where(b => b.FacilityName == facilityName && b.Date.Date == date.Date && BlocksSlot(b.Status)));
 
         return bookings;
     }
@@ -360,5 +380,99 @@ public class BookingService : IBookingService
     public async Task AddBookingAsync(Booking booking)
     {
         await ProcessAndConfirmBookingAsync(booking);
+    }
+
+    // --------- Helper methods for resilient JSON parsing ---------
+    private static string TryGetDocumentId(JsonElement doc)
+    {
+        if (doc.TryGetProperty("name", out var nameProp) && nameProp.ValueKind == JsonValueKind.String)
+        {
+            var name = nameProp.GetString();
+            if (!string.IsNullOrEmpty(name))
+            {
+                var parts = name.Split('/');
+                return parts.Last();
+            }
+        }
+        return string.Empty;
+    }
+
+    private static string GetStringField(JsonElement fields, string fieldName)
+    {
+        if (fields.TryGetProperty(fieldName, out var prop))
+        {
+            if (prop.ValueKind == JsonValueKind.Object)
+            {
+                if (prop.TryGetProperty("stringValue", out var sv) && sv.ValueKind == JsonValueKind.String)
+                    return sv.GetString() ?? string.Empty;
+
+                if (prop.TryGetProperty("integerValue", out var iv) && iv.ValueKind == JsonValueKind.String)
+                    return iv.GetString() ?? string.Empty;
+
+                if (prop.TryGetProperty("timestampValue", out var tv) && tv.ValueKind == JsonValueKind.String)
+                    return tv.GetString() ?? string.Empty;
+            }
+
+            if (prop.ValueKind == JsonValueKind.String)
+                return prop.GetString() ?? string.Empty;
+        }
+
+        return string.Empty;
+    }
+
+    private static int GetIntField(JsonElement fields, string fieldName)
+    {
+        if (fields.TryGetProperty(fieldName, out var prop))
+        {
+            if (prop.ValueKind == JsonValueKind.Object && prop.TryGetProperty("integerValue", out var iv))
+            {
+                var s = iv.GetString();
+                if (int.TryParse(s, out var v)) return v;
+            }
+
+            if (prop.ValueKind == JsonValueKind.Number && prop.TryGetInt32(out var num))
+                return num;
+
+            if (prop.ValueKind == JsonValueKind.String && int.TryParse(prop.GetString(), out var sval))
+                return sval;
+        }
+
+        return 0;
+    }
+
+    private static DateTime GetDateField(JsonElement fields, string fieldName)
+    {
+        if (fields.TryGetProperty(fieldName, out var prop))
+        {
+            if (prop.ValueKind == JsonValueKind.Object && prop.TryGetProperty("timestampValue", out var tv))
+            {
+                var s = tv.GetString();
+                if (DateTime.TryParse(s, null, DateTimeStyles.RoundtripKind, out var dt))
+                    return dt;
+            }
+
+            if (prop.ValueKind == JsonValueKind.Object && prop.TryGetProperty("stringValue", out var sv))
+            {
+                var s = sv.GetString();
+                if (DateTime.TryParse(s, out var dt2)) return dt2;
+            }
+
+            if (prop.ValueKind == JsonValueKind.String)
+            {
+                var s = prop.GetString();
+                if (DateTime.TryParse(s, out var dt3)) return dt3;
+            }
+        }
+
+        return DateTime.MinValue;
+    }
+
+    private static bool BlocksSlot(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+            return true;
+
+        return status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase) ||
+               status.Equals("Pending", StringComparison.OrdinalIgnoreCase);
     }
 }

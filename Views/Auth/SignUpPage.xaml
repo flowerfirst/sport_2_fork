@@ -28,6 +28,11 @@
                     <Entry Placeholder="Full Name" Text="{Binding Name}" TextColor="{StaticResource Black}" PlaceholderColor="{StaticResource Gray400}" HeightRequest="50"/>
                 </Border>
 
+                <!-- Student ID Entry -->
+                <Border Stroke="{StaticResource Gray300}" StrokeThickness="1" StrokeShape="RoundRectangle 10" Padding="15,0">
+                    <Entry Placeholder="Student ID" Text="{Binding StudentId}" TextColor="{StaticResource Black}" PlaceholderColor="{StaticResource Gray400}" Keyboard="Text" HeightRequest="50"/>
+                </Border>
+
                 <!-- Phone Number Entry -->
                 <Border Stroke="{StaticResource Gray300}" StrokeThickness="1" StrokeShape="RoundRectangle 10" Padding="15,0">
                     <Entry Placeholder="Phone Number" 

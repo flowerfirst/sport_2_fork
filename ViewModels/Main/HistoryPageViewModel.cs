@@ -12,7 +12,7 @@ namespace oculus_sport.ViewModels.Main;
 public partial class HistoryPageViewModel : BaseViewModel
 {
     private readonly IBookingService _firebaseService;
-    private readonly LocalDatabaseService _localService;
+    private readonly LocalDataService _localDataService;
     private readonly Services.Other.ConnectivityService _connectivity;
 
     [ObservableProperty]
@@ -21,10 +21,10 @@ public partial class HistoryPageViewModel : BaseViewModel
     [ObservableProperty]
     private bool _hasNoBookings;
 
-    public HistoryPageViewModel(IBookingService firebase, LocalDatabaseService local, Services.Other.ConnectivityService conn)
+    public HistoryPageViewModel(IBookingService firebase, LocalDataService localDataService, Services.Other.ConnectivityService conn)
     {
         _firebaseService = firebase;
-        _localService = local;
+        _localDataService = localDataService;
         _connectivity = conn;
         Title = "Booking History";
     }
@@ -52,13 +52,13 @@ public partial class HistoryPageViewModel : BaseViewModel
                 bookings = await _firebaseService.GetUserBookingsAsync(userId);
                 Debug.WriteLine($"[History] Firebase returned {bookings.Count} bookings.");
 
-                await _localService.SaveBookingsAsync(bookings);
+                await _localDataService.SaveBookingHistoryAsync(userId, bookings);
                 Debug.WriteLine("[History] Cached bookings locally.");
             }
             else
             {
                 Debug.WriteLine("[History] Offline mode: fetching from SQLite...");
-                bookings = await _localService.GetBookingsAsync();
+                bookings = await _localDataService.GetLocalBookingHistoryAsync(userId);
                 Debug.WriteLine($"[History] SQLite returned {bookings.Count} bookings.");
 
                 if (bookings.Count > 0)
@@ -95,7 +95,8 @@ public partial class HistoryPageViewModel : BaseViewModel
 
         var navigationParameter = new Dictionary<string, object>
         {
-            { "Booking", booking }
+            { "Booking", booking },
+            { "IshFromHistory", true }
         };
 
         await Shell.Current.GoToAsync("BookingSuccessPage", navigationParameter);

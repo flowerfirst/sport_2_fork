@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using oculus_sport.Models;
 using oculus_sport.Services;
+using oculus_sport.Services.Other;
 using oculus_sport.ViewModels.Base;
 
 namespace oculus_sport.ViewModels.Main;
@@ -10,13 +11,15 @@ namespace oculus_sport.ViewModels.Main;
 public partial class BookingConfirmationViewModel : BaseViewModel
 {
     private readonly IBookingService _bookingService;
+    private readonly NotificationService _notificationService;
 
     [ObservableProperty]
     private Booking _booking;
 
-    public BookingConfirmationViewModel(IBookingService bookingService)
+    public BookingConfirmationViewModel(IBookingService bookingService, NotificationService notificationService)
     {
         _bookingService = bookingService;
+        _notificationService = notificationService;
         Title = "Confirmation";
     }
 
@@ -31,9 +34,12 @@ public partial class BookingConfirmationViewModel : BaseViewModel
         // 2. Save to Database/Service (Calls the merged IBookingService)
         await _bookingService.AddBookingAsync(Booking);
 
+        // 3. Notify user locally (immediate + reminder)
+        await _notificationService.NotifyBookingConfirmedAsync(Booking);
+
         IsBusy = false;
 
-        // 3. Navigate to Success Page
+        // 4. Navigate to Success Page
         var navigationParameter = new Dictionary<string, object>
         {
             { "Booking", Booking }

@@ -1,46 +1,72 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Maui.ApplicationModel;
 using oculus_sport.Models;
+using oculus_sport.Services.Other;
 using oculus_sport.ViewModels.Base;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 
 namespace oculus_sport.ViewModels.Main;
 
 public partial class NotificationPageViewModel : BaseViewModel
 {
-    [ObservableProperty]
-    private ObservableCollection<NotificationItem> _notifications = new();
+    private readonly NotificationStore _notificationStore;
 
-    public NotificationPageViewModel()
+    private readonly ObservableCollection<NotificationItem> _notifications = new();
+
+    private bool _isRefreshing;
+
+    public ObservableCollection<NotificationItem> Notifications => _notifications;
+
+    public bool IsRefreshing
     {
-        Title = "Notifications";
-        LoadNotifications();
+        get => _isRefreshing;
+        set => SetProperty(ref _isRefreshing, value);
     }
 
-    private void LoadNotifications()
+    public NotificationPageViewModel(NotificationStore notificationStore)
     {
-        Notifications = new ObservableCollection<NotificationItem>
+        _notificationStore = notificationStore;
+        Title = "Notifications";
+    }
+
+    public async Task InitializeAsync()
+    {
+        await LoadNotificationsAsync();
+        await _notificationStore.MarkAllAsReadAsync();
+    }
+
+    [RelayCommand]
+    private async Task RefreshAsync()
+    {
+        IsRefreshing = true;
+        await LoadNotificationsAsync();
+        IsRefreshing = false;
+    }
+
+    private async Task LoadNotificationsAsync()
+    {
+        if (IsBusy)
+            return;
+
+        try
         {
-            new NotificationItem
+            IsBusy = true;
+            var items = await _notificationStore.GetNotificationsAsync();
+
+            MainThread.BeginInvokeOnMainThread(() =>
             {
-                Title = "Booking Confirmed",
-                Message = "Your booking for Badminton Court 1 has been confirmed.",
-                Time = "2 mins ago",
-                IsRead = false
-            },
-            new NotificationItem
-            {
-                Title = "System Maintenance",
-                Message = "The app will be undergoing maintenance on Sunday 2AM-4AM.",
-                Time = "1 hour ago",
-                IsRead = true
-            },
-            new NotificationItem
-            {
-                Title = "New Event: Basketball Cup",
-                Message = "Registration is now open for the Inter-Faculty Basketball Cup.",
-                Time = "Yesterday",
-                IsRead = true
-            }
-        };
+                Notifications.Clear();
+                foreach (var notification in items)
+                {
+                    Notifications.Add(notification);
+                }
+            });
+        }
+        finally
+        {
+            IsBusy = false;
+        }
     }
 }

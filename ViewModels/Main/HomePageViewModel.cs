@@ -9,6 +9,7 @@ using System.Diagnostics;
 
 namespace oculus_sport.ViewModels.Main
 {
+    // This allows the Login Page to pass the "User" object directly to Home
     [QueryProperty(nameof(CurrentUser), "User")]
     public partial class HomePageViewModel : BaseViewModel
     {
@@ -43,7 +44,8 @@ namespace oculus_sport.ViewModels.Main
             _authService = authService;
             Title = "Home";
 
-            // 1. Initial User Load (From AuthService state)
+            // 1. Initial User Load (Try to get from AuthService memory first)
+            // This handles the case where the app is just opening and user is already logged in
             var cachedUser = _authService.GetCurrentUser();
             if (cachedUser != null)
             {
@@ -53,35 +55,100 @@ namespace oculus_sport.ViewModels.Main
 
             LoadCategories();
 
-            // Start data load immediately
+            // Kick off data loading immediately
             Task.Run(LoadDataAsync);
         }
 
-        // ----------------- User Sync -----------------
+        // ----------------- User Sync (Critical for Login) -----------------
 
+        // This method is called automatically when the [QueryProperty] "User" is set
+        // (i.e., when navigating from Login Page -> Home Page)
         partial void OnCurrentUserChanged(User value)
         {
             if (value != null)
             {
+                Debug.WriteLine($"[HomeViewModel] User Changed: {value.Name}");
                 UserName = value.Name;
-                // If the user object has an ID Token, store it (optional, as we usually get it from SecureStorage)
-                // _idToken = value.IdToken; 
 
-                // Reload data if user changes
+                // If the user object passed in has a fresh token, use it
+                if (!string.IsNullOrEmpty(value.IdToken))
+                {
+                    _idToken = value.IdToken;
+                }
+
+                // Reload data for this specific user
                 _ = LoadDataAsync();
             }
         }
 
-        // Helper to sync user state if needed manually
+        // Helper to sync user state manually if needed (e.g. from App.xaml.cs startup)
         public async Task UserHomepageSync(string uid, string idToken)
         {
             _idToken = idToken;
-            // Note: We are reusing the existing method from FirebaseDataService if available, 
-            // or just updating the local user object.
-            var user = await _dataService.GetUserProfileAsync(uid);
+            var user = await _dataService.GetUserFromFirestore(uid, idToken);
             if (user != null)
             {
+                user.IdToken = idToken;
+                CurrentUser = user; // Triggers OnCurrentUserChanged
+            }
+        }
+
+        // ----------------- Page Lifecycle (Called by HomePage.xaml.cs) -----------------
+
+        public async Task LoadAsync()
+        {
+            // 1. Try to get/refresh the token
+            var idToken = await SecureStorage.GetAsync("idToken");
+            if (string.IsNullOrEmpty(idToken) || IsTokenExpired(idToken))
+            {
+                var refreshed = await _authService.RefreshIdTokenAsync();
+                if (!string.IsNullOrEmpty(refreshed))
+                {
+                    idToken = refreshed;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(idToken))
+            {
+                _idToken = idToken;
+                StatusMessage = string.Empty;
+            }
+            else
+            {
+                StatusMessage = "Offline mode: limited data available.";
+            }
+
+            // 2. Ensure we have a user in memory (pull from cache if needed)
+            var user = _authService.GetCurrentUser() ?? await _authService.GetCachedUserAsync();
+            if (user != null)
+            {
+                UserName = user.Name;
+                if (!string.IsNullOrEmpty(idToken))
+                {
+                    user.IdToken = idToken;
+                }
                 CurrentUser = user;
+            }
+            else if (!string.IsNullOrEmpty(_idToken))
+            {
+                // Fallback: fetch user from DB using stored ID when we have a token
+                var uid = Preferences.Get("LastUserId", "");
+                if (!string.IsNullOrEmpty(uid))
+                {
+                    await UserHomepageSync(uid, _idToken);
+                }
+            }
+            else
+            {
+                StatusMessage = "Session expired. Please log in again.";
+                await Shell.Current.GoToAsync("//LoginPage");
+                return;
+            }
+
+            // 3. Only attempt remote data load when a valid token exists
+            if (!string.IsNullOrEmpty(_idToken) && _allFacilities.Count == 0)
+            {
+                await LoadDataAsync();
             }
         }
 
@@ -89,32 +156,38 @@ namespace oculus_sport.ViewModels.Main
 
         private void LoadCategories()
         {
+            Categories.Clear();
             Categories.Add(new SportCategory { Name = "Badminton", IsSelected = true });
-            Categories.Add(new SportCategory { Name = "Ping-Pong" }); // Ensure naming matches your DB/Filter
+            Categories.Add(new SportCategory { Name = "Ping-Pong" });
             Categories.Add(new SportCategory { Name = "Basketball" });
         }
 
         private async Task LoadDataAsync()
         {
             if (IsBusy) return;
+
+            // Double check token availability
+            if (string.IsNullOrEmpty(_idToken)) _idToken = await SecureStorage.GetAsync("idToken");
+            if (string.IsNullOrEmpty(_idToken)) return;
+
             IsBusy = true;
 
             try
             {
-                // 1. Fetch from Firestore (Using our REST Service)
-                var fetchedFacilities = await _dataService.GetFacilitiesFromFirestoreAsync();
+                // Fetch from Firestore using the ID Token
+                var fetchedFacilities = await _dataService.GetFacilitiesAsync(_idToken);
 
                 _allFacilities.Clear();
 
-                // 2. Process and Assign Local Maps (Our Map Logic)
+                // Process and Assign Local Maps (Your Map Logic)
                 foreach (var facility in fetchedFacilities)
                 {
-                    // Logic to assign the correct local map image
-                    if (facility.Name.Contains("Badminton", StringComparison.OrdinalIgnoreCase))
+                    // Logic to assign the correct local map image based on name
+                    if (facility.FacilityName.Contains("Badminton", StringComparison.OrdinalIgnoreCase))
                         facility.LocationMapUrl = "recreation_center.png";
-                    else if (facility.Name.Contains("Ping", StringComparison.OrdinalIgnoreCase)) // Catch Ping-Pong/PingPong
-                        facility.LocationMapUrl = "recreational_center.png";
-                    else if (facility.Name.Contains("Basketball", StringComparison.OrdinalIgnoreCase))
+                    else if (facility.FacilityName.Contains("Ping", StringComparison.OrdinalIgnoreCase))
+                        facility.LocationMapUrl = "recreation_center.png";
+                    else if (facility.FacilityName.Contains("Basketball", StringComparison.OrdinalIgnoreCase))
                         facility.LocationMapUrl = "outdoor_court.png";
                     else
                         facility.LocationMapUrl = "recreation_center.png"; // Fallback
@@ -122,17 +195,15 @@ namespace oculus_sport.ViewModels.Main
                     _allFacilities.Add(facility);
                 }
 
-                // 3. Update UI on Main Thread
+                // Update UI on Main Thread
                 MainThread.BeginInvokeOnMainThread(() =>
                 {
-                    // Default filter
                     FilterFacilities("Badminton");
                 });
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[Error] LoadDataAsync: {ex.Message}");
-                await Shell.Current.DisplayAlert("Error", $"Could not load facilities: {ex.Message}", "OK");
             }
             finally
             {
@@ -140,7 +211,7 @@ namespace oculus_sport.ViewModels.Main
             }
         }
 
-        // ----------------- Interaction Logic -----------------
+        // ----------------- Filtering & Interaction -----------------
 
         [RelayCommand]
         void SelectCategory(SportCategory category)
@@ -161,7 +232,8 @@ namespace oculus_sport.ViewModels.Main
             if (categoryName.Contains("Ping")) searchTerm = "Ping";
 
             var filtered = _allFacilities
-                .Where(f => f.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+                .Where(f => f.Category.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+                         || f.FacilityName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
 
             foreach (var facility in filtered)
             {
@@ -172,7 +244,7 @@ namespace oculus_sport.ViewModels.Main
         [RelayCommand]
         async Task BookFacility(Facility facility)
         {
-            Debug.WriteLine($"[DEBUG] Selected Facility: {facility.Name}");
+            Debug.WriteLine($"[DEBUG] Selected Facility: {facility.FacilityName}");
             var navigationParameter = new Dictionary<string, object> { { "Facility", facility } };
             await Shell.Current.GoToAsync("BookingPage", navigationParameter);
         }
@@ -183,34 +255,7 @@ namespace oculus_sport.ViewModels.Main
             await Shell.Current.GoToAsync("NotificationPage");
         }
 
-        // ----------------- Token Validation -----------------
-
-        public async Task LoadAsync()
-        {
-            var user = _authService.GetCurrentUser();
-            if (user == null)
-            {
-                StatusMessage = "No logged in user detected.";
-                // Optional: Force login
-                // await Shell.Current.GoToAsync("//LoginPage"); 
-                return;
-            }
-
-            // Check token validity
-            var idToken = await SecureStorage.GetAsync("idToken");
-            if (string.IsNullOrEmpty(idToken) || IsTokenExpired(idToken))
-            {
-                StatusMessage = "Session expired. Please log in again.";
-                await Shell.Current.GoToAsync("//LoginPage");
-                return;
-            }
-
-            // If valid, ensure UI is up to date
-            StatusMessage = $"Welcome back, {user.Name}";
-
-            // Optionally refresh token if API supports it
-            await _authService.RefreshIdTokenAsync();
-        }
+        // ----------------- Token Helper -----------------
 
         private bool IsTokenExpired(string idToken)
         {
@@ -224,7 +269,6 @@ namespace oculus_sport.ViewModels.Main
                 var jsonBytes = Convert.FromBase64String(payloadPad);
                 var json = System.Text.Encoding.UTF8.GetString(jsonBytes);
 
-                // Simple regex to find exp claim
                 var expMatch = System.Text.RegularExpressions.Regex.Match(json, "\"exp\":(\\d+)");
                 if (!expMatch.Success) return true;
 
@@ -235,7 +279,7 @@ namespace oculus_sport.ViewModels.Main
             }
             catch
             {
-                return true; // Assume expired if parse fails
+                return true;
             }
         }
     }

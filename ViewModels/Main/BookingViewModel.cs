@@ -1,5 +1,7 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using oculus_sport.Models;
@@ -17,7 +19,6 @@ public partial class BookingViewModel : BaseViewModel
 {
     private readonly IBookingService _bookingService;
     private readonly IAuthService _authService; // Kept from backend changes
-    private CancellationTokenSource _cts;
 
     [ObservableProperty]
     private Facility _facility = new();
@@ -30,6 +31,8 @@ public partial class BookingViewModel : BaseViewModel
 
     [ObservableProperty]
     private string _availabilityMessage = string.Empty;
+
+    private bool _isRealtimeListenerActive;
 
     // Updated constructor to accept both services
     public BookingViewModel(IBookingService bookingService, IAuthService authService)
@@ -56,42 +59,111 @@ public partial class BookingViewModel : BaseViewModel
         IsBusy = false;
     }
 
-    private async void StartRealtimeListener()
+    private void StartRealtimeListener()
+    {
+        if (_isRealtimeListenerActive)
+        {
+            return;
+        }
+
+        _isRealtimeListenerActive = true;
+        _ = ListenForBookingUpdatesAsync();
+    }
+
+    private async Task ListenForBookingUpdatesAsync()
     {
         var idToken = await SecureStorage.GetAsync("idToken");
-        if (string.IsNullOrEmpty(idToken)) return;
-
-        await _bookingService.ListenToBookingsAsync(idToken, (json) =>
+        if (string.IsNullOrEmpty(idToken))
         {
-            MainThread.BeginInvokeOnMainThread(() =>
-            {
-                try
-                {
-                    var docRoot = JsonDocument.Parse(json).RootElement;
-                    if (docRoot.TryGetProperty("documents", out var docs))
-                    {
-                        foreach (var d in docs.EnumerateArray())
-                        {
-                            var fields = d.GetProperty("fields");
-                            var facilityName = fields.GetProperty("facilityName").GetProperty("stringValue").GetString();
-                            var timeSlot = fields.GetProperty("timeSlot").GetProperty("stringValue").GetString();
+            _isRealtimeListenerActive = false;
+            return;
+        }
 
-                            var slot = TimeSlots.FirstOrDefault(s => s.TimeRange == timeSlot && s.SlotName.Contains(facilityName));
-                            if (slot != null)
-                            {
-                                slot.IsAvailable = false;
-                                if (slot.IsSelected) slot.IsSelected = false; // deselect if already selected
-                            }
-                        }
-                    }
-                }
-                catch (Exception ex)
+        await _bookingService.ListenToBookingsAsync(idToken, HandleBookingUpdate);
+    }
+
+    private void HandleBookingUpdate(string json)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                if (!doc.RootElement.TryGetProperty("documents", out var docs)) return;
+
+                foreach (var d in docs.EnumerateArray())
                 {
-                    Debug.WriteLine($"[Listener] JSON parse error: {ex.Message}");
+                    if (!d.TryGetProperty("fields", out var fields)) continue;
+                    var facilityName = GetStringField(fields, "facilityName");
+                    if (!string.Equals(facilityName, Facility?.FacilityName, StringComparison.OrdinalIgnoreCase)) continue;
+
+                    var bookingDate = GetDateField(fields, "date");
+                    if (bookingDate == null || bookingDate.Value.Date != SelectedDate.Date) continue;
+
+                    var timeSlot = GetStringField(fields, "timeSlot");
+                    if (string.IsNullOrWhiteSpace(timeSlot)) continue;
+
+                    var slot = TimeSlots.FirstOrDefault(s => s.TimeRange.Equals(timeSlot, StringComparison.OrdinalIgnoreCase));
+                    if (slot == null) continue;
+
+                    slot.IsAvailable = false;
+                    if (slot.IsSelected) slot.IsSelected = false;
                 }
-            });
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Listener] JSON parse error: {ex.Message}");
+            }
         });
     }
+
+    private static string GetStringField(JsonElement fields, string fieldName)
+    {
+        if (fields.TryGetProperty(fieldName, out var prop))
+        {
+            if (prop.ValueKind == JsonValueKind.Object && prop.TryGetProperty("stringValue", out var sv))
+            {
+                return sv.GetString() ?? string.Empty;
+            }
+
+            if (prop.ValueKind == JsonValueKind.String)
+            {
+                return prop.GetString() ?? string.Empty;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static DateTime? GetDateField(JsonElement fields, string fieldName)
+    {
+        if (!fields.TryGetProperty(fieldName, out var prop)) return null;
+
+        if (prop.ValueKind == JsonValueKind.Object)
+        {
+            if (prop.TryGetProperty("timestampValue", out var tv) &&
+                tv.ValueKind == JsonValueKind.String &&
+                DateTime.TryParse(tv.GetString(), null, DateTimeStyles.RoundtripKind, out var timestampDate))
+            {
+                return timestampDate;
+            }
+
+            if (prop.TryGetProperty("stringValue", out var sv) &&
+                DateTime.TryParse(sv.GetString(), out var stringDate))
+            {
+                return stringDate;
+            }
+        }
+        else if (prop.ValueKind == JsonValueKind.String &&
+                 DateTime.TryParse(prop.GetString(), out var directDate))
+        {
+            return directDate;
+        }
+
+        return null;
+    }
+
+
 
 
     public async void GenerateTimeSlots()
@@ -151,13 +223,19 @@ public partial class BookingViewModel : BaseViewModel
         {
             // Fetch existing bookings from Firestore
             var existingBookings = await _bookingService.GetUserBookingsAsync("");
-            // Combine Firestore bookings + local pending bookings
-            var bookedSlots = existingBookings
-                .Where(b => b.FacilityName == Facility.FacilityName && b.Date.Date == SelectedDate.Date)
+            var activeBookings = existingBookings
+                .Where(b => b.FacilityName == Facility.FacilityName &&
+                            b.Date.Date == SelectedDate.Date &&
+                            BlocksSlotStatus(b.Status));
+
+            var blockingPending = _bookingService.LocalPendingBookings
+                .Where(b => b.FacilityName == Facility.FacilityName &&
+                            b.Date.Date == SelectedDate.Date &&
+                            BlocksSlotStatus(b.Status));
+
+            var bookedSlots = activeBookings
                 .Select(b => b.TimeSlot)
-                .Concat(_bookingService.LocalPendingBookings
-                    .Where(b => b.FacilityName == Facility.FacilityName && b.Date.Date == SelectedDate.Date)
-                    .Select(b => b.TimeSlot))
+                .Concat(blockingPending.Select(b => b.TimeSlot))
                 .ToHashSet();
 
             // Mark unavailable
@@ -177,6 +255,14 @@ public partial class BookingViewModel : BaseViewModel
         }
     }
 
+    private static bool BlocksSlotStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+            return true;
+
+        return status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase) ||
+               status.Equals("Pending", StringComparison.OrdinalIgnoreCase);
+    }
 
 
 

@@ -33,40 +33,25 @@ public partial class ProfilePageViewModel : BaseViewModel
         Title = "My Profile";
 
         IsDarkMode = Application.Current.UserAppTheme == AppTheme.Dark;
-
-        // LOAD REAL USER DATA
-        LoadUserData();
-    }
-
-    private void LoadUserData()
-    {
-        // Get the user from the service
-        var currentUser = _authService.GetCurrentUser();
-
-        if (currentUser != null)
-        {
-            Name = currentUser.Name;
-            StudentId = currentUser.StudentId;
-            Email = currentUser.Email;
-        }
-        else
-        {
-            // Fallback if something went wrong
-            Name = "Guest";
-            Email = "Not Logged In";
-        }
     }
 
     // --- load user info
     public async Task LoadAsync()
     {
-        var user = _authService.GetCurrentUser();
+        var user = _authService.GetCurrentUser() ?? await _authService.GetCachedUserAsync();
         if (user != null)
         {
             Name = user.Name;
             StudentId = user.StudentId;
             Email = user.Email;
             PhoneNumber = user.PhoneNumber;
+        }
+        else
+        {
+            Name = "Guest";
+            Email = "Not Logged In";
+            StudentId = string.Empty;
+            PhoneNumber = string.Empty;
         }
     }
 

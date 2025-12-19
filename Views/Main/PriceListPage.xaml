@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="oculus_sport.Views.Main.PriceListPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:vm="clr-namespace:oculus_sport.ViewModels.Main"
+    xmlns:models="clr-namespace:oculus_sport.Models"
+    x:DataType="vm:PriceListViewModel"
+    BackgroundColor="{StaticResource White}">
+
+    <Grid RowDefinitions="Auto,Auto,*" Padding="20" RowSpacing="16">
+        <Label Text="Price List"
+               FontSize="28"
+               FontAttributes="Bold"
+               TextColor="{StaticResource Primary}" />
+
+        <Label Grid.Row="1"
+               Text="Review sport-specific rates without starting a booking."
+               FontSize="14"
+               TextColor="{StaticResource Gray500}" />
+
+        <Grid Grid.Row="2">
+            <CollectionView ItemsSource="{Binding Prices}" SelectionMode="None">
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Spacing="8" Padding="32" HorizontalOptions="Center" VerticalOptions="Center">
+                        <Label Text="No pricing data available." FontAttributes="Bold" HorizontalTextAlignment="Center" />
+                        <Label Text="{Binding StatusMessage}" HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="models:Facility">
+                        <Frame CornerRadius="12"
+                               Padding="16"
+                               Margin="0,0,0,12"
+                               HasShadow="False"
+                               BackgroundColor="{StaticResource Gray100}">
+                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto">
+                                <Label Text="{Binding FacilityName}" FontAttributes="Bold" FontSize="18" />
+                                <Label Grid.Row="1"
+                                       Text="{Binding Category}"
+                                       FontSize="13"
+                                       TextColor="{StaticResource Gray500}" />
+                                <Label Grid.Column="1"
+                                       Grid.RowSpan="2"
+                                       Text="{Binding Price, StringFormat='RM {0:F2}'}"
+                                       FontAttributes="Bold"
+                                       FontSize="18"
+                                       HorizontalTextAlignment="End"
+                                       VerticalTextAlignment="Center" />
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}"
+                               IsVisible="{Binding IsBusy}"
+                               HorizontalOptions="Center"
+                               VerticalOptions="Center" />
+        </Grid>
+    </Grid>
+</ContentPage>

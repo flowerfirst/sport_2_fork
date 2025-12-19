@@ -68,7 +68,7 @@ public partial class SchedulePageViewModel : BaseViewModel
             if (day == DayOfWeek.Monday || day == DayOfWeek.Thursday || day == DayOfWeek.Friday)
             {
                 for (int i = 1; i <= 3; i++)
-                    AvailableFacilities.Add(new Facility { FacilityName = $"Badminton Court {i}", Location = "10:00, 12:00, 14:00", ImageUrl = "badminton_court.webp" });
+                    AvailableFacilities.Add(new Facility { FacilityName = $"Badminton Court {i}", Location = "10:00, 12:00, 14:00", ImageUrl = "badminton_court.png" });
             }
         }
         else if (selectedCategory == "Ping-Pong")
