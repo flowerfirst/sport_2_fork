@@ -31,6 +31,16 @@ The project is built following a strict **MVVM (Model-View-ViewModel)** pattern 
 * **Offline Profile:** User profile information is stored locally on the device.
 * **Event & Schedule Viewing:** The main tab bar includes navigation for Home, Schedule, Events, History, and Profile.
 
+## 📖 User Manual
+
+For detailed instructions on how to use the app, please refer to the **[User Manual (USER_MANUAL.md)](USER_MANUAL.md)**. The user manual includes:
+
+* Step-by-step guides for all app features
+* Account management instructions
+* Booking procedures and tips
+* Troubleshooting common issues
+* FAQs and support information
+
 ---
 
 ## 4. Architectural Pattern: MVVM
